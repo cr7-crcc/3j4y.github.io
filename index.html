@@ -277,6 +277,16 @@
             animation: bounce-hint 1.5s ease-in-out infinite;
             display: inline-block;
         }
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 4px rgba(201,169,98,0.4); }
+            50% { box-shadow: 0 0 16px rgba(201,169,98,0.9), 0 0 24px rgba(201,169,98,0.4); }
+        }
+        .btn-glow {
+            animation: glow-pulse 2s ease-in-out infinite;
+            background: linear-gradient(135deg, #c9a962, #d4b86a) !important;
+            color: #1a1a1a !important;
+            font-weight: 700 !important;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -366,6 +376,7 @@
             width: 95%;
             max-height: 85vh;
             overflow-y: auto;
+            overflow-x: hidden;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         }
         .modal h3 {
@@ -535,6 +546,14 @@
         .ios-switch input:checked + .slider:before {
             transform: translateX(18px);
         }
+        .edit-modal input[value=""] { background: #fffde7 !important; border-color: #e6c300 !important; }
+        .edit-modal input:not([value]) { background: #fffde7 !important; border-color: #e6c300 !important; }
+        .edit-modal .form-group { gap: 1px !important; }
+        .edit-modal .form-group label { font-size: 0.75em !important; margin-bottom: 0 !important; }
+        .edit-modal .form-group input, .edit-modal .form-group select { padding: 4px 6px !important; font-size: 0.85em !important; }
+        .edit-modal .form-grid { gap: 6px !important; }
+        .edit-modal .phase-card .form-grid { gap: 4px !important; }
+        .modal h3 { font-size: 1em !important; margin: 0 0 8px 0 !important; }
         @media print {
             @page { size: A4 portrait; margin: 1.2cm; }
             body { background: #fff !important; }
@@ -736,11 +755,11 @@
         <h1>🏗️ <span class="accent">CRCCRE</span> 质监"三阶四验"台账</h1>
         <div class="header-actions">
             <button class="btn btn-outline btn-sm" onclick="refreshData()" title="刷新最新数据">🔄 刷新</button>
-            <button class="btn btn-outline btn-sm" onclick="exportAll()">📥 导出</button>
+            <button class="btn btn-outline btn-sm" onclick="showExportModal()">📥 导出</button>
             <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">📤 导入</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAll(event)">
             <button class="btn btn-outline btn-sm" onclick="printFullReport()">🖨️ 综合报告</button>
-            <button class="btn btn-success btn-sm" onclick="executeSubmit()">📤 提交</button>
+            <button class="btn btn-success btn-sm" onclick="showSubmitPwdModal()">📤 提交</button>
             <button class="btn btn-outline btn-sm" onclick="showAdminLogin()" style="border-color:#c9a962;color:#c9a962;">👑 管理</button>
             <button class="btn btn-danger btn-sm" onclick="showCleanModal()">🧹 一键清理</button>
             <span style="font-size:0.8em;opacity:0.8;">👤 cr7</span>
@@ -975,15 +994,15 @@
             // 图表区 — 2列网格
             html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
             // 图表1: 各公司项目类型数量
-            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:8px;">📊 各公司项目类型数量</div><canvas id="chartTypeCount"></canvas></div>';
+            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;">📊 各公司项目类型数量</div><div id="typeCountSummary" style="font-size:0.72em;color:#555;margin-bottom:4px;"></div><canvas id="chartTypeCount"></canvas></div>';
             // 图表2: 各项目状态分布（标段数）
-            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:8px;">📊 各项目状态分布（标段、批次数量）</div><canvas id="chartStatusDist"></canvas></div>';
+            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;">📊 各项目状态分布（标段、批次数量）</div><div id="statusDistSummary" style="font-size:0.72em;color:#555;margin-bottom:4px;"></div><canvas id="chartStatusDist"></canvas></div>';
             // 图表2b: 各项目状态分布（面积）
-            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:8px;">📊 各项目状态分布（面积）</div><canvas id="chartStatusArea"></canvas></div>';
+            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;">📊 各项目状态分布（面积）</div><div id="statusAreaSummary" style="font-size:0.72em;color:#555;margin-bottom:4px;"></div><canvas id="chartStatusArea"></canvas></div>';
             // 图表3: 各公司面积统计
-            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:8px;">📊 各公司面积统计(万m²)</div><canvas id="chartAreaStats"></canvas></div>';
+            html += '<div class="card" style="padding:14px;"><div style="font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;">📊 各公司面积统计(万m²)</div><div id="areaStatsSummary" style="font-size:0.72em;color:#555;margin-bottom:4px;"></div><canvas id="chartAreaStats"></canvas></div>';
             // 图表4: 每年竣备交付
-            html += '<div class="card" style="padding:14px;"><div style="text-align:center;font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;" id="annualDeliveryTitle">各公司每年竣备/交付数量</div><div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;" id="annualDeliveryYears"></div><canvas id="chartAnnualDelivery"></canvas></div>';
+            html += '<div class="card" style="padding:14px;"><div style="text-align:center;font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;" id="annualDeliveryTitle">各公司每年竣备/交付数量</div><div id="annualDelSummary" style="font-size:0.72em;color:#555;text-align:center;margin-bottom:2px;"></div><div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;" id="annualDeliveryYears"></div><canvas id="chartAnnualDelivery"></canvas></div>';
             // 图表5: 每年项目状态
             html += '<div class="card" style="padding:14px;"><div style="text-align:center;font-weight:700;font-size:0.85em;color:var(--primary);margin-bottom:2px;" id="annualStatusTitle">各公司每年项目状态数量</div><div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;" id="annualStatusYears"></div><canvas id="chartAnnualStatus"></canvas></div>';
             html += '</div>';
@@ -1034,45 +1053,355 @@
             const contractorMap = {};
             _projects.forEach(p => (p.phases || []).forEach(ph => {
                 if (ph.contractor) {
-                    if (!contractorMap[ph.contractor]) contractorMap[ph.contractor] = { count: 0,
-                        projects: new Set() };
+                    if (!contractorMap[ph.contractor]) contractorMap[ph.contractor] = { count: 0, projects: new Set() };
                     contractorMap[ph.contractor].count++;
                     contractorMap[ph.contractor].projects.add(p.name);
                 }
             }));
-            html += '<table><thead><tr style="background:linear-gradient(135deg,#1a3c5e,#2c5f8a);color:#fff;"><th style="padding:8px;">施工总承包单位</th><th style="padding:8px;width:70px;">标段数量</th><th style="padding:8px;">所在项目</th></tr></thead><tbody>';
-            const maxCount = Math.max(...Object.values(contractorMap).map(v => v.count), 1);
-            Object.entries(contractorMap).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN')).forEach(([k, v], idx) => {
-                const intensity = Math.round((v.count / maxCount) * 100);
-                const bg = idx % 2 === 0 ? '#fcfcfc' : '#f6f8fa';
-                html +=
-                    `<tr style="background:${bg};" onmouseover="this.style.background='#eef4fb'" onmouseout="this.style.background='${bg}'"><td style="font-weight:500;">${k}</td><td style="text-align:center;font-weight:700;color:#fff;background:${v.count>=5?'#e74c3c':v.count>=3?'#f39c12':v.count>=2?'#3498db':'#95a5a6'};border-radius:4px;padding:3px 8px;">${v.count}</td><td style="text-align:left;font-size:0.75em;color:#555;">${[...v.projects].join('、')}</td></tr>`;
+            // 提取上级单位的函数
+            function getParentName(name) {
+                var ju = name.indexOf('局');
+                var jt = name.indexOf('集团');
+                // 局在集团之前，以局为界
+                if (ju > 0 && (jt < 0 || ju < jt)) return name.substring(0, ju + 1);
+                // 集团
+                if (jt > 0) return name.substring(0, jt + 2);
+                // 局在集团之后，以局为界
+                if (ju > 0) return name.substring(0, ju + 1);
+                return name.substring(0, Math.min(6, name.length));
+            }
+            // 按上级单位分组
+            var parentGroups = {};
+            Object.entries(contractorMap).forEach(function(entry) {
+                var name = entry[0], data = entry[1];
+                var parent = getParentName(name);
+                if (!parentGroups[parent]) parentGroups[parent] = { total: 0, children: [] };
+                parentGroups[parent].total += data.count;
+                parentGroups[parent].children.push({ name: name, count: data.count, projects: data.projects });
             });
-            html += '</tbody></table></div>';
+            // 合并短名称到包含它的长名称下
+            var parentNames = Object.keys(parentGroups);
+            parentNames.sort(function(a,b){ return b.length - a.length; });
+            var mergeMap = {};
+            parentNames.forEach(function(longName) {
+                parentNames.forEach(function(shortName) {
+                    if (shortName !== longName && longName.indexOf(shortName) === 0) {
+                        mergeMap[shortName] = longName;
+                    }
+                });
+            });
+            Object.keys(mergeMap).forEach(function(short) {
+                var long = mergeMap[short];
+                if (parentGroups[short] && parentGroups[long]) {
+                    parentGroups[long].total += parentGroups[short].total;
+                    parentGroups[long].children = parentGroups[long].children.concat(parentGroups[short].children);
+                    delete parentGroups[short];
+                }
+            });
+            function chineseToNum(str) {
+                var map = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'零':0 };
+                if (str === '十') return 10;
+                var result = 0, i = 0;
+                if (str.charAt(0) === '十') { result = 10; i = 1; }
+                for (; i < str.length; i++) { var ch = str.charAt(i); if (ch === '十') { result = (result || 1) * 10; } else if (map[ch] !== undefined) { result += map[ch]; } }
+                return result;
+            }
+            function naturalCompare(a, b) {
+                var re = /(\d+|[一二三四五六七八九十百千]+)|(\D+)/g;
+                var aParts = a.match(re) || [a], bParts = b.match(re) || [b];
+                for (var i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+                    var aNum = parseInt(aParts[i]), bNum = parseInt(bParts[i]);
+                    if (isNaN(aNum)) aNum = chineseToNum(aParts[i]);
+                    if (isNaN(bNum)) bNum = chineseToNum(bParts[i]);
+                    if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) return aNum - bNum;
+                    if (!isNaN(aNum) && isNaN(bNum)) return -1;
+                    if (isNaN(aNum) && !isNaN(bNum)) return 1;
+                    if (isNaN(aNum) && isNaN(bNum)) { var cmp = aParts[i].localeCompare(bParts[i], 'zh-CN'); if (cmp !== 0) return cmp; }
+                }
+                return aParts.length - bParts.length;
+            }
+            // 施工总承包一览表
+                        // 构建表格行的函数
+            function buildTableRows(entries, startSeq) {
+                var h = '', seqNum = startSeq;
+                entries.forEach(function(g, gIdx) {
+                    var parent = g[0], group = g[1];
+                    var bg2 = gIdx % 2 === 0 ? '#fcfcfc' : '#f6f8fa';
+                    if (group.children.length === 1) {
+                        var c = group.children[0]; seqNum++;
+                        h += '<tr style="background:'+bg2+'"><td style="text-align:center;color:#999;">'+seqNum+'</td><td style="font-weight:500;" colspan="2">'+c.name+'</td><td style="text-align:center;font-weight:700;color:#fff;background:'+(c.count>=5?'#e74c3c':c.count>=3?'#f39c12':c.count>=2?'#3498db':'#95a5a6')+';border-radius:4px;padding:3px 8px;">'+c.count+'</td><td style="text-align:left;font-size:0.75em;color:#555;">'+[...c.projects].map(function(pn){var tp=_projects.find(function(pp){return pp.name===pn;});var tt=tp?tp.type:'';var tc='tag-yellow';return pn+(tt==='代建'?'<span class=\"tag '+tc+'\" style=\"font-size:0.6em;margin-left:2px;\">代建</span>':'');}).join('、')+'</td></tr>';
+                    } else {
+                        var sortedChildren = group.children.sort(function(a,b) { return naturalCompare(a.name, b.name); });
+                        seqNum++;
+                        sortedChildren.forEach(function(c, cIdx) {
+                            h += '<tr style="background:'+bg2+'">';
+                            if (cIdx === 0) {
+                                h += '<td rowspan="'+sortedChildren.length+'" style="text-align:center;color:#999;vertical-align:middle;">'+seqNum+'</td>';
+                                h += '<td rowspan="'+sortedChildren.length+'" style="font-weight:700;color:#1a3c5e;vertical-align:middle;">'+parent+'<br><span style="font-size:0.62em;color:#999;">'+sortedChildren.length+'家 / '+group.total+'标段</span></td>';
+                            }
+                            h += '<td style="font-size:0.9em;">'+c.name+'</td><td style="text-align:center;font-weight:700;color:#fff;background:'+(c.count>=5?'#e74c3c':c.count>=3?'#f39c12':c.count>=2?'#3498db':'#95a5a6')+';border-radius:4px;padding:3px 8px;">'+c.count+'</td><td style="text-align:left;font-size:0.75em;color:#555;">'+[...c.projects].map(function(pn){var tp=_projects.find(function(pp){return pp.name===pn;});var tt=tp?tp.type:'';var tc='tag-yellow';return pn+(tt==='代建'?'<span class=\"tag '+tc+'\" style=\"font-size:0.6em;margin-left:2px;\">代建</span>':'');}).join('、')+'</td></tr>';
+                        });
+                    }
+                });
+                return h;
+            }
+            var sortedEntries = Object.entries(parentGroups).sort(function(a, b) {
+                var aZT = a[0].indexOf('中铁') === 0, bZT = b[0].indexOf('中铁') === 0;
+                if (aZT && !bZT) return -1;
+                if (!aZT && bZT) return 1;
+                return naturalCompare(a[0], b[0]);
+            });
+            // 按实际行数（含多子公司的行）平分为左右两组
+            var totalRows = 0;
+            sortedEntries.forEach(function(g) { totalRows += g[1].children.length; });
+            var midRows = Math.ceil(totalRows / 2);
+            var leftEntries = [], rightEntries = [], rowsSoFar = 0;
+            sortedEntries.forEach(function(g) {
+                if (rowsSoFar < midRows) { leftEntries.push(g); rowsSoFar += g[1].children.length; }
+                else { rightEntries.push(g); }
+            });
+            var thead = '<thead><tr style="background:linear-gradient(135deg,#1a3c5e,#2c5f8a);color:#fff;"><th style="padding:8px;width:6%;">序号</th><th style="padding:8px;width:7%;">上级单位</th><th style="padding:8px;width:17%;">施工总承包单位</th><th style="padding:8px;width:6%;">标段数量</th><th style="padding:8px;width:64%;">所在项目</th></tr></thead>';
+            html += '<div style="display:flex;gap:12px;">';
+            html += '<div style="flex:1;min-width:0;"><table style="width:100%;">'+thead+'<tbody>'+buildTableRows(leftEntries, 0)+'</tbody></table></div>';
+            html += '<div style="flex:1;min-width:0;"><table style="width:100%;">'+thead+'<tbody>'+buildTableRows(rightEntries, leftEntries.length)+'</tbody></table></div>';
+            html += '</div></div>';
 
-            // 各公司汇总表
-            html += '<div class="card" style="margin-top:12px;padding:14px;"><div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px;">📋 各公司项目汇总</div>';
-            html +=
-                '<table><thead><tr><th>公司</th><th>项目总数</th><th>面积总数(万m²)</th><th>标段总数</th><th>标段面积总数(万m²)</th><th>在建</th><th>竣备待交付</th><th>停工</th><th>集中交付期</th><th>已移交物业</th><th>未开工</th></tr></thead><tbody>';
-            COMPANIES.forEach(c => {
-                const cProjs = _projects.filter(p => p.company === c);
-                const totalArea = cProjs.reduce((s, p) => s + (parseFloat(p.area) || 0), 0);
-                let totalPhases = 0,
-                    totalPhaseArea = 0;
-                const statusCount = {};
-                PROJECT_STATUSES.forEach(s => statusCount[s] = 0);
-                cProjs.forEach(p => (p.phases || []).forEach(ph => {
-                    totalPhases++;
-                    totalPhaseArea += parseFloat(ph.area) || 0;
-                    if (statusCount[ph.status] !== undefined) statusCount[ph.status]++;
-                }));
-                html +=
-                    `<tr><td><strong>${c}</strong></td><td>${cProjs.length}</td><td>${totalArea.toFixed(1)}</td><td>${totalPhases}</td><td>${totalPhaseArea.toFixed(1)}</td>`;
-                PROJECT_STATUSES.forEach(s => html += `<td>${statusCount[s]||0}</td>`);
-                html += '</tr>';
+            // 停工项目台账
+            const stoppedPhases = [];
+            _projects.forEach(p => {
+                (p.phases||[]).forEach(ph => {
+                    if (ph.status === '停工') {
+                        var fb = ph.currentFeedback || {};
+                        stoppedPhases.push({ company: p.company, projName: p.name, phaseName: ph.name, type: p.type, reason: fb.customNote || '', updateTime: fb.lastUpdate || '' });
+                    }
+                });
             });
-            html += '</tbody></table>';
-            html += '</div>';
+            if (stoppedPhases.length > 0) {
+                // 按公司→项目分组
+                stoppedPhases.sort((a,b) => COMPANIES.indexOf(a.company) - COMPANIES.indexOf(b.company));
+                html += '<div class="card" style="margin-top:12px;padding:14px;"><div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px;">⛔ 停工项目台账</div>';
+                html += '<table><thead><tr><th style="width:10%;">所属公司</th><th style="width:12%;">项目</th><th style="width:6%;">类型</th><th style="width:10%;">标段</th><th style="width:62%;">停工原因</th></tr></thead><tbody>';
+                var companyAccent3 = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
+                var si = 0, projToggle3 = 0;
+                while (si < stoppedPhases.length) {
+                    var sc = stoppedPhases[si].company;
+                    var se = si;
+                    while (se < stoppedPhases.length && stoppedPhases[se].company === sc) se++;
+                    var companyRowspan3 = se - si;
+                    var spi = si;
+                    while (spi < se) {
+                        var sproj = stoppedPhases[spi].projName;
+                        var spe = spi;
+                        while (spe < se && stoppedPhases[spe].projName === sproj) spe++;
+                        var projRowspan3 = spe - spi;
+                        var rowBg3 = projToggle3 % 2 === 0 ? '#fff' : '#f5f7fa';
+                        var accent3 = companyAccent3[sc] || '#ccc';
+                        for (var sk = spi; sk < spe; sk++) {
+                            var sr = stoppedPhases[sk];
+                            html += '<tr style="border-left:3px solid '+accent3+';background:'+rowBg3+';">';
+                            if (sk === si) html += '<td rowspan="'+companyRowspan3+'" style="vertical-align:middle;"><strong style="color:'+accent3+';">'+sc+'</strong></td>';
+                            var typeTag3 = sr.type==='操盘'?'tag-green':sr.type==='合作'?'tag-pink':'tag-yellow';
+                            if (sk === spi) html += '<td rowspan="'+projRowspan3+'" style="vertical-align:middle;font-weight:500;">'+sr.projName+'</td>';
+                            html += '<td><span class="tag '+typeTag3+'" style="font-size:0.65em;">'+sr.type+'</span></td>';
+                            html += '<td>'+sr.phaseName+'</td>';
+                            html += '<td style="color:#e74c3c;">'+(sr.reason||'<span style="color:#999;">未录入</span>')+'</td>';
+                            html += '</tr>';
+                        }
+                        projToggle3++;
+                        spi = spe;
+                    }
+                    si = se;
+                }
+                html += '</tbody></table></div>';
+            }
+
+            // 未开工项目台账
+            const unstartedPhases = [];
+            _projects.forEach(p => {
+                (p.phases||[]).forEach(ph => {
+                    if (ph.status === '未开工') {
+                        var ufb = ph.currentFeedback || {};
+                        unstartedPhases.push({ company: p.company, projName: p.name, phaseName: ph.name, type: p.type, reason: ufb.customNote || '' });
+                    }
+                });
+            });
+            if (unstartedPhases.length > 0) {
+                unstartedPhases.sort((a,b) => COMPANIES.indexOf(a.company) - COMPANIES.indexOf(b.company));
+                html += '<div class="card" style="margin-top:12px;padding:14px;"><div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px;"> 未开工项目台账</div>';
+                html += '<table><thead><tr><th style="width:10%;">所属公司</th><th style="width:12%;">项目</th><th style="width:6%;">类型</th><th style="width:10%;">标段</th><th style="width:62%;">未开工原因</th></tr></thead><tbody>';
+                var companyAccent4 = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
+                var ui = 0, projToggle4 = 0;
+                while (ui < unstartedPhases.length) {
+                    var uc = unstartedPhases[ui].company;
+                    var ue = ui;
+                    while (ue < unstartedPhases.length && unstartedPhases[ue].company === uc) ue++;
+                    var companyRowspan4 = ue - ui;
+                    var upi = ui;
+                    while (upi < ue) {
+                        var uproj = unstartedPhases[upi].projName;
+                        var upe = upi;
+                        while (upe < ue && unstartedPhases[upe].projName === uproj) upe++;
+                        var projRowspan4 = upe - upi;
+                        var rowBg4 = projToggle4 % 2 === 0 ? '#fff' : '#f5f7fa';
+                        var accent4 = companyAccent4[uc] || '#ccc';
+                        for (var uk = upi; uk < upe; uk++) {
+                            var ur = unstartedPhases[uk];
+                            var utypeTag = ur.type==='操盘'?'tag-green':ur.type==='合作'?'tag-pink':'tag-yellow';
+                            html += '<tr style="border-left:3px solid '+accent4+';background:'+rowBg4+';">';
+                            if (uk === ui) html += '<td rowspan="'+companyRowspan4+'" style="vertical-align:middle;"><strong style="color:'+accent4+';">'+uc+'</strong></td>';
+                            if (uk === upi) html += '<td rowspan="'+projRowspan4+'" style="vertical-align:middle;font-weight:500;">'+ur.projName+'</td>';
+                            html += '<td><span class=\"tag '+utypeTag+'\" style=\"font-size:0.65em;\">'+ur.type+'</span></td>';
+                            html += '<td>'+ur.phaseName+'</td>';
+                            html += '<td style="color:#e74c3c;">'+(ur.reason||'<span style="color:#999;">未录入</span>')+'</td>';
+                            html += '</tr>';
+                        }
+                        projToggle4++;
+                        upi = upe;
+                    }
+                    ui = ue;
+                }
+                html += '</tbody></table></div>';
+            }
+
+            // 承接查验项目台账
+            var crPhases = [];
+            var todayCR = new Date(); todayCR.setHours(0,0,0,0);
+            _projects.forEach(function(p) {
+                (p.phases||[]).forEach(function(ph) {
+                    if (ph.status === '未开工' || ph.status === '已移交物业' || ph.status === '集中交付期内' || p.type === '代建' || !ph.deliveryTime) return;
+                    var delDate3 = ph.deliveryTime ? new Date(ph.deliveryTime) : null;
+                    var daysToDel = delDate3 ? Math.ceil((delDate3 - todayCR) / (1000*60*60*24)) : 999;
+                    var inspDate3 = ph.inspectionStartTime ? new Date(ph.inspectionStartTime) : null;
+                    var crReached = inspDate3 && todayCR >= inspDate3;
+                    var isOverdue = delDate3 && todayCR > delDate3 && ph.status !== '集中交付期内';
+                    if (daysToDel <= 120 || crReached || isOverdue) {
+                        var fb3 = ph.currentFeedback || {};
+                        var crData3 = fb3.threeFourCheck ? fb3.threeFourCheck.inspectionRoundsData || [] : [];
+                        var crY = 0, crZ = 0;
+                        crData3.forEach(function(r) { if (r.conducted) { crY++; crZ += parseInt(r.remaining)||0; } });
+                        var crStatus = '';
+                        if (crY > 0) {
+                            var crUpdateTime = fb3.lastUpdate ? fb3.lastUpdate.substring(5,10) : '';
+                            var crPrefix = crUpdateTime ? '截至<b>'+crUpdateTime+'</b>，' : '';
+                            crStatus = crPrefix + '已开展<b>'+crY+'</b>轮，剩余<b>'+crZ+'</b>条';
+                            var du = ph.deliveryUnits || 1;
+                            if (du > 0) crStatus += '，户均<b>'+(crZ/du).toFixed(2)+'</b>条';
+                        } else if (daysToDel <= 120 && inspDate3 && todayCR < inspDate3) {
+                            var daysToInsp = Math.ceil((inspDate3 - todayCR) / (1000*60*60*24));
+                            var effectiveDays = delDate3 ? Math.ceil((delDate3 - inspDate3) / (1000*60*60*24)) : 0;
+                            crStatus = '距离交付倒计时<b style=\"color:#e74c3c;\">'+daysToDel+'</b>天，距离承接查验倒计时<b>'+daysToInsp+'</b>天，实际有效承接查验天数<b>'+effectiveDays+'</b>天';
+                        } else if (isOverdue && daysToDel < 0) {
+                            crStatus = '<b style=\"color:#e74c3c;\">已逾期'+Math.abs(daysToDel)+'天</b>，<span style=\"color:#999;\">未完成交付</span>';
+                        } else if (!inspDate3) {
+                            crStatus = '距离交付<b style=\"color:#e74c3c;\">'+daysToDel+'</b>天，<span style=\"color:#999;\">未设置承查计划</span>';
+                        } else {
+                            crStatus = '<span style=\"color:#999;\">未录入</span>';
+                        }
+                        crPhases.push({ company: p.company, projName: p.name, phaseName: ph.name, type: p.type, status: ph.status, inspTime: ph.inspectionStartTime || '', delTime: ph.deliveryTime || '', crStatus: crStatus });
+                    }
+                });
+            });
+            if (crPhases.length > 0) {
+                crPhases.sort(function(a,b) { return COMPANIES.indexOf(a.company) - COMPANIES.indexOf(b.company); });
+                html += '<div class="card" style="margin-top:12px;padding:14px;"><div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:2px;">🔍 承接查验项目台账</div>';
+                html += '<div style="font-size:0.7em;color:#888;margin-bottom:6px;">📌 罗列范围：当前距离交付时间不足120天的项目，或已达到承接查验计划时间的项目。</div>';
+                html += '<table><thead><tr><th style="width:10%;">所属公司</th><th style="width:12%;">项目</th><th style="width:6%;">类型</th><th style="width:10%;">标段</th><th style="width:10%;">承查时间</th><th style="width:8%;">状态</th><th style="width:10%;">交付时间</th><th style="width:34%;">承接查验现状</th></tr></thead><tbody>';
+                var companyAccent5 = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
+                var cri = 0, projToggle5 = 0;
+                while (cri < crPhases.length) {
+                    var crc = crPhases[cri].company;
+                    var cre = cri;
+                    while (cre < crPhases.length && crPhases[cre].company === crc) cre++;
+                    var companyRowspan5 = cre - cri;
+                    var crpi = cri;
+                    while (crpi < cre) {
+                        var crproj = crPhases[crpi].projName;
+                        var crpe = crpi;
+                        while (crpe < cre && crPhases[crpe].projName === crproj) crpe++;
+                        var projRowspan5 = crpe - crpi;
+                        var rowBg5 = projToggle5 % 2 === 0 ? '#fff' : '#f5f7fa';
+                        var accent5 = companyAccent5[crc] || '#ccc';
+                        for (var crk = crpi; crk < crpe; crk++) {
+                            var crr = crPhases[crk];
+                            var crTypeTag = crr.type==='操盘'?'tag-green':crr.type==='合作'?'tag-pink':'tag-yellow';
+                            html += '<tr style="border-left:3px solid '+accent5+';background:'+rowBg5+';">';
+                            if (crk === cri) html += '<td rowspan="'+companyRowspan5+'" style="vertical-align:middle;"><strong style="color:'+accent5+';">'+crc+'</strong></td>';
+                            if (crk === crpi) html += '<td rowspan="'+projRowspan5+'" style="vertical-align:middle;font-weight:500;">'+crr.projName+'</td>';
+                            html += '<td><span class=\"tag '+crTypeTag+'\" style=\"font-size:0.65em;\">'+crr.type+'</span></td>';
+                            html += '<td>'+crr.phaseName+'</td>';
+                            html += '<td style="font-size:0.75em;">'+formatDate(crr.inspTime)+'</td>';
+                            var crStatusTag = crr.status==='在建'?'tag-blue':crr.status==='竣备待交付'?'tag-yellow':crr.status==='停工'?'tag-red':crr.status==='集中交付期内'?'tag-teal':'tag-gray';
+                            html += '<td><span class=\"tag '+crStatusTag+'\" style=\"font-size:0.6em;\">'+crr.status+'</span></td>';
+                            html += '<td style="font-size:0.75em;">'+formatDate(crr.delTime)+'</td>';
+                            html += '<td style="font-size:0.8em;">'+crr.crStatus+'</td>';
+                            html += '</tr>';
+                        }
+                        projToggle5++;
+                        crpi = crpe;
+                    }
+                    cri = cre;
+                }
+                html += '</tbody></table></div>';
+            }
+
+            // 集中交付期项目台账
+            var delPhases = [];
+            _projects.forEach(function(p) {
+                (p.phases||[]).forEach(function(ph) {
+                    if (ph.status === '集中交付期内') {
+                        var fb4 = ph.currentFeedback || {};
+                        var t1 = fb4.twoOne || {};
+                        var dStatus = '';
+                        if (t1.issuesPerHousehold) dStatus += '户均问题<b>'+t1.issuesPerHousehold+'</b>条';
+                        if (t1.actualUnits) { var totalU = ph.deliveryUnits||1; dStatus += (dStatus?'，':'')+'交付率<b>'+(parseFloat(t1.actualUnits)/totalU*100).toFixed(1)+'%</b>'; }
+                        if (t1.indicator2) dStatus += (dStatus?'，':'')+'渗漏: '+t1.indicator2;
+                        if (!dStatus) dStatus = '<span style=\"color:#999;\">未录入</span>';
+                        else if (fb4.lastUpdate) dStatus = '截至<b>'+fb4.lastUpdate.substring(5,10)+'</b>，'+dStatus;
+                        delPhases.push({ company: p.company, projName: p.name, phaseName: ph.name, type: p.type, status: ph.status, delTime: ph.deliveryTime || '', dStatus: dStatus });
+                    }
+                });
+            });
+            if (delPhases.length > 0) {
+                delPhases.sort(function(a,b) { return COMPANIES.indexOf(a.company) - COMPANIES.indexOf(b.company); });
+                html += '<div class="card" style="margin-top:12px;padding:14px;"><div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px;">📋 集中交付期项目台账</div>';
+                html += '<table><thead><tr><th style="width:10%;">所属公司</th><th style="width:12%;">项目</th><th style="width:6%;">类型</th><th style="width:10%;">标段</th><th style="width:10%;">交付日期</th><th style="width:8%;">状态</th><th style="width:44%;">两个1指标录入</th></tr></thead><tbody>';
+                var companyAccent6 = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
+                var di = 0, projToggle6 = 0;
+                while (di < delPhases.length) {
+                    var dc = delPhases[di].company;
+                    var de = di;
+                    while (de < delPhases.length && delPhases[de].company === dc) de++;
+                    var companyRowspan6 = de - di;
+                    var dpi = di;
+                    while (dpi < de) {
+                        var dproj = delPhases[dpi].projName;
+                        var dpe = dpi;
+                        while (dpe < de && delPhases[dpe].projName === dproj) dpe++;
+                        var projRowspan6 = dpe - dpi;
+                        var rowBg6 = projToggle6 % 2 === 0 ? '#fff' : '#f5f7fa';
+                        var accent6 = companyAccent6[dc] || '#ccc';
+                        for (var dk = dpi; dk < dpe; dk++) {
+                            var dr = delPhases[dk];
+                            var dTypeTag = dr.type==='操盘'?'tag-green':dr.type==='合作'?'tag-pink':'tag-yellow';
+                            html += '<tr style="border-left:3px solid '+accent6+';background:'+rowBg6+';">';
+                            if (dk === di) html += '<td rowspan="'+companyRowspan6+'" style="vertical-align:middle;"><strong style="color:'+accent6+';">'+dc+'</strong></td>';
+                            if (dk === dpi) html += '<td rowspan="'+projRowspan6+'" style="vertical-align:middle;font-weight:500;">'+dr.projName+'</td>';
+                            html += '<td><span class=\"tag '+dTypeTag+'\" style=\"font-size:0.65em;\">'+dr.type+'</span></td>';
+                            html += '<td>'+dr.phaseName+'</td>';
+                            html += '<td style="font-size:0.75em;">'+formatDate(dr.delTime)+'</td>';
+                            var dStatusTag = 'tag-teal';
+                            html += '<td><span class=\"tag '+dStatusTag+'\" style=\"font-size:0.6em;\">'+dr.status+'</span></td>';
+                            html += '<td style="font-size:0.8em;">'+dr.dStatus+'</td>';
+                            html += '</tr>';
+                        }
+                        projToggle6++;
+                        dpi = dpe;
+                    }
+                    di = de;
+                }
+                html += '</tbody></table></div>';
+            }
+
             return html;
         }
 
@@ -1205,7 +1534,7 @@
                     type: 'bar',
                     data: {
                         labels: COMPANIES,
-                        datasets: PROJECT_STATUSES.map(s => ({
+                        datasets: ['未开工','停工','在建','竣备待交付','集中交付期内','已移交物业'].map(s => ({
                             label: s,
                             data: COMPANIES.map(c => statusDistData[c][s] || 0),
                             backgroundColor: statusColors[s] || '#ccc'
@@ -1216,11 +1545,24 @@
                                     const status = ctx.dataset.label;
                                     const details = statusDetailData[company]?.[status] || [];
                                     if (details.length === 0) return status + ': 0';
-                                    return [status + ': ' + details.length + ' 个标段', ...details.map(d => '  └ ' + d)];
+                                    var lines2 = [status + ': ' + details.length + ' 个标段'];
+                                    details.forEach(function(d) {
+                                        var parts = d.split('/');
+                                        var proj2 = _projects.find(function(pp){return pp.name===parts[0];});
+                                        var extra2 = '';
+                                        if (proj2 && (status==='停工'||status==='未开工')) {
+                                            var ph2 = (proj2.phases||[]).find(function(ph){return ph.name===parts[1];});
+                                            if (ph2) { var fb2 = ph2.currentFeedback||{}; if (fb2.customNote) extra2 = ' — '+fb2.customNote; }
+                                        }
+                                        lines2.push('  └ ' + d + extra2);
+                                    });
+                                    return lines2;
                                 } } } }, scales: { x: { stacked: true },
                             y: { stacked: true, title: { display: true, text: '标段数量' } } }
                     }
                 });
+                var sdTotal = Object.values(statusDistData).reduce(function(s,c){return s+Object.values(c).reduce(function(a,b){return a+b;},0);},0);
+                var sdParts = []; PROJECT_STATUSES.forEach(function(st) { var n=COMPANIES.reduce(function(s,c){return s+(statusDistData[c][st]||0);},0); if(n>0) sdParts.push(st+' <b>'+n+'</b>'); }); document.getElementById('statusDistSummary').innerHTML = sdParts.join('，');
             }
             // 各项目状态分布（面积）
             const statusAreaData = {};
@@ -1244,7 +1586,7 @@
                     type: 'bar',
                     data: {
                         labels: COMPANIES,
-                        datasets: PROJECT_STATUSES.map(s => ({
+                        datasets: ['未开工','停工','在建','竣备待交付','集中交付期内','已移交物业'].map(s => ({
                             label: s,
                             data: COMPANIES.map(c => parseFloat(statusAreaData[c][s].toFixed(1)) || 0),
                             backgroundColor: statusColors[s] || '#ccc'
@@ -1260,27 +1602,32 @@
                             y: { stacked: true, title: { display: true, text: '面积(万m²)' } } }
                     }
                 });
+                var saTotal = Object.values(statusAreaData).reduce(function(s,c){return s+Object.values(c).reduce(function(a,b){return a+b;},0);},0);
+                var saParts = []; PROJECT_STATUSES.forEach(function(st) { var a=COMPANIES.reduce(function(s,c){return s+(statusAreaData[c][st]||0);},0); if(a>0) saParts.push(st+' <b>'+a.toFixed(1)+'</b>万m²'); }); var noAreaProjects = []; _projects.forEach(function(p) { (p.phases||[]).forEach(function(ph) { if (!ph.area || isNaN(parseFloat(ph.area)) || parseFloat(ph.area)===0) { if (noAreaProjects.indexOf(p.company+'·'+p.name+'/'+ph.name)<0) noAreaProjects.push(p.company+'·'+p.name+'/'+ph.name); } }); }); var saHTML = saParts.join('，'); if (noAreaProjects.length > 0) saHTML += ' <span style=\"color:#e74c3c;font-weight:bold;\">⚠ 未录入面积：'+noAreaProjects.join('、')+'</span>'; document.getElementById('statusAreaSummary').innerHTML = saHTML;
             }
-            // 各公司项目类型数量
+            // 各公司项目类型数量（代建按品牌输出区分）
             const typeCountData = {};
             const typeDetailData = {};
+            const DISPLAY_TYPES = ['操盘', '合作', '代建(品牌)', '代建(非品牌)'];
             COMPANIES.forEach(c => { typeCountData[c] = {};
                 typeDetailData[c] = {};
-                PROJECT_TYPES.forEach(t => { typeCountData[c][t] = 0;
+                DISPLAY_TYPES.forEach(t => { typeCountData[c][t] = 0;
                 typeDetailData[c][t] = []; }); });
             _projects.forEach(p => {
                 if (typeCountData[p.company]) {
-                    typeCountData[p.company][p.type] = (typeCountData[p.company][p.type] || 0) + 1;
-                    typeDetailData[p.company][p.type].push(p.name);
+                    if (p.type === '代建') {
+                        var key = p.brandOutput === '是' ? '代建(品牌)' : '代建(非品牌)';
+                    } else { key = p.type; }
+                    typeCountData[p.company][key] = (typeCountData[p.company][key] || 0) + 1;
+                    typeDetailData[p.company][key].push(p.name);
                 }
             });
-            // 计算各类型合计 + 合计详情（按公司分组）
             const typeTotals = {};
-            const typeTotalDetail = {}; // type -> [公司: 项目1, 项目2]
-            PROJECT_TYPES.forEach(t => { typeTotals[t] = 0;
+            const typeTotalDetail = {};
+            DISPLAY_TYPES.forEach(t => { typeTotals[t] = 0;
                 typeTotalDetail[t] = []; });
             COMPANIES.forEach(c => {
-                PROJECT_TYPES.forEach(t => {
+                DISPLAY_TYPES.forEach(t => {
                     const names = typeDetailData[c]?.[t] || [];
                     if (names.length > 0) {
                         typeTotals[t] += names.length;
@@ -1288,37 +1635,47 @@
                     }
                 });
             });
-            const typeColors = { '操盘': '#27ae60', '合作': '#e91e63', '代建': '#f39c12' };
-            const allLabels = [...COMPANIES, '合计'];
+            const typeColors = { '操盘': '#27ae60', '合作': '#e91e63', '代建(品牌)': '#f39c12', '代建(非品牌)': '#e67e22' };
+            const allLabels = [...COMPANIES];
             const ctx2 = document.getElementById('chartTypeCount');
             if (ctx2) {
                 new Chart(ctx2, {
                     type: 'bar',
                     data: {
                         labels: allLabels,
-                        datasets: PROJECT_TYPES.map(t => ({
+                        datasets: DISPLAY_TYPES.map(t => ({
                             label: t,
-                            data: [...COMPANIES.map(c => typeCountData[c][t] || 0), typeTotals[t]],
+                            data: COMPANIES.map(c => typeCountData[c][t] || 0),
                             backgroundColor: typeColors[t] || '#ccc'
                         }))
                     },
                     options: { responsive: true, plugins: { tooltip: { callbacks: { label: function(ctx) {
                                     const label = ctx.chart.data.labels[ctx.dataIndex];
                                     const type = ctx.dataset.label;
-                                    if (label === '合计') {
-                                        const groups = typeTotalDetail[type] || [];
-                                        const lines = [type + ' 合计: ' + ctx.raw + ' 个项目'];
-                                        groups.forEach(g => {
-                                            lines.push('  🏢 ' + g.company + ': ' + g.names.join('、'));
-                                        });
-                                        return lines;
-                                    }
-                                    const details = typeDetailData[label]?.[type] || [];
+                                        const details = typeDetailData[label]?.[type] || [];
                                     if (details.length === 0) return type + ': 0';
-                                    return [type + ': ' + details.length + ' 个项目', ...details.map(d => '  └ ' + d)];
-                                } } } }, scales: { y: { title: { display: true, text: '项目数量' } } }
+                                    var lines = [type + ': ' + details.length + ' 个项目'];
+                                    details.forEach(function(pn) {
+                                        var proj = _projects.find(function(pp){return pp.name===pn;});
+                                        var extra = '';
+                                        if (proj) {
+                                            if (proj.type === '代建' && proj.owner) extra = ' | 业主: '+proj.owner;
+                                            else if (proj.type === '合作') {
+                                                if (proj.partner) extra += ' | 合作方: '+proj.partner;
+                                                if (proj.shareRatio) extra += ' | 我司股比: '+proj.shareRatio;
+                                                if (proj.ourLines) extra += ' | 我司条线: '+proj.ourLines;
+                                            }
+                                        }
+                                        lines.push('  └ ' + pn + extra);
+                                    });
+                                    return lines;
+                                } } } }, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: '项目数量' } } }
                     }
                 });
+                // 合计总结文字
+                var summaryParts = [];
+                DISPLAY_TYPES.forEach(function(t) { if (typeTotals[t] > 0) summaryParts.push(t + ' <b>' + typeTotals[t] + '</b> 个'); });
+                document.getElementById('typeCountSummary').innerHTML = '合计：' + summaryParts.join('，');
             }
             // 各公司面积统计
             const areaData = {};
@@ -1350,6 +1707,8 @@
                     options: { responsive: true, scales: { y: { title: { display: true,
                                     text: '面积(万m²)' } } } }
                 });
+                var areaTotal = Object.values(areaData).reduce(function(s,c){return s+c.total;},0);
+                var atParts = []; PROJECT_TYPES.forEach(function(t) { var a=COMPANIES.reduce(function(s,c){return s+(areaData[c][t]||0);},0); if(a>0) atParts.push(t+' <b>'+a.toFixed(1)+'</b>万m²'); }); var atHTML = atParts.join('，'); if (noAreaProjects.length > 0) atHTML += ' <span style=\"color:#e74c3c;font-weight:bold;\">⚠ 未录入面积：'+noAreaProjects.join('、')+'</span>'; document.getElementById('areaStatsSummary').innerHTML = atHTML;
             }
             // 各公司每年竣备交付数量
             const allYears = new Set();
@@ -1406,6 +1765,9 @@
                     { label: y + '年交付', data: COMPANIES.map(c => annualDelData[c][y].交付 || 0),
                         backgroundColor: yearColors[y] + '99', year: y, borderColor: yearColors[y], borderWidth: 1, borderDash: [4, 3] }
                 ]);
+                var annualDelTotal = 0;
+                years.forEach(function(y) { annualDelTotal += COMPANIES.reduce(function(s,c){ return s + ((annualDelData[c][y]||{}).竣备||0) + ((annualDelData[c][y]||{}).交付||0); },0); });
+                var adJb=0, adJf=0; years.forEach(function(y){ COMPANIES.forEach(function(cc){ adJb+=((annualDelData[cc][y]||{}).竣备||0); adJf+=((annualDelData[cc][y]||{}).交付||0); }); }); document.getElementById('annualDelSummary').innerHTML = '竣备 <b>'+adJb+'</b> 个，交付 <b>'+adJf+'</b> 个';
                 window._chartAnnualDelivery = new Chart(ctx4, {
                     type: 'bar',
                     data: { labels: COMPANIES, datasets: datasets },
@@ -1480,6 +1842,48 @@
             }
         }
 
+        function _unused_initChinaMap() {
+            var mapEl = document.getElementById('chartChinaMap');
+            if (!mapEl || typeof echarts === 'undefined') return;
+            var w = mapEl.clientWidth || 800;
+            mapEl.style.height = (w / 1.7) + 'px';
+            var chart = echarts.init(mapEl);
+            var cityCount = {}, cityProjects = {};
+            var cities = ['北京','上海','广州','深圳','天津','重庆','杭州','南京','武汉','成都','西安','郑州','济南','青岛','大连','沈阳','长春','哈尔滨','苏州','无锡','宁波','温州','福州','厦门','南昌','长沙','合肥','石家庄','太原','呼和浩特','南宁','贵阳','昆明','拉萨','兰州','西宁','银川','乌鲁木齐','海口','三亚','珠海','佛山','东莞','中山','惠州','汕头','徐州','南通','常州','嘉兴','绍兴','金华','台州','泉州','漳州','洛阳','唐山','烟台','潍坊','威海','淄博','临沂','邯郸','保定','廊坊','沧州'];
+            _projects.forEach(function(p) {
+                var name = p.name || ''; var found = false;
+                for (var i = 0; i < cities.length; i++) {
+                    if (name.indexOf(cities[i]) === 0) {
+                        cityCount[cities[i]] = (cityCount[cities[i]] || 0) + 1;
+                        if (!cityProjects[cities[i]]) cityProjects[cities[i]] = [];
+                        cityProjects[cities[i]].push(p.company + '·' + p.name + '(' + p.type + ')');
+                        found = true; break;
+                    }
+                }
+                if (!found) {
+                    cityCount['其他'] = (cityCount['其他'] || 0) + 1;
+                    if (!cityProjects['其他']) cityProjects['其他'] = [];
+                    cityProjects['其他'].push(p.company + '·' + p.name + '(' + p.type + ')');
+                }
+            });
+            var geoCoord = {'北京':[116.46,39.92],'上海':[121.48,31.22],'广州':[113.23,23.16],'深圳':[114.07,22.62],'天津':[117.2,39.13],'重庆':[106.54,29.59],'杭州':[120.19,30.26],'南京':[118.78,32.04],'武汉':[114.31,30.52],'成都':[104.06,30.67],'西安':[108.95,34.27],'郑州':[113.65,34.76],'济南':[117.0,36.65],'青岛':[120.33,36.07],'大连':[121.62,38.92],'沈阳':[123.38,41.8],'长春':[125.35,43.88],'哈尔滨':[126.63,45.75],'苏州':[120.62,31.32],'无锡':[120.29,31.59],'宁波':[121.54,29.86],'温州':[120.7,28.0],'福州':[119.3,26.08],'厦门':[118.1,24.46],'南昌':[115.89,28.68],'长沙':[112.98,28.19],'合肥':[117.27,31.86],'石家庄':[114.48,38.03],'太原':[112.53,37.87],'南宁':[108.33,22.84],'贵阳':[106.71,26.57],'昆明':[102.73,25.04],'兰州':[103.73,36.03],'西宁':[101.74,36.56],'银川':[106.27,38.47],'乌鲁木齐':[87.68,43.77],'海口':[110.35,20.02],'三亚':[109.51,18.25],'珠海':[113.52,22.3],'佛山':[113.11,23.05],'东莞':[113.75,23.04],'惠州':[114.4,23.09],'徐州':[117.2,34.27],'南通':[120.86,32.01],'常州':[119.95,31.79],'洛阳':[112.44,34.7],'唐山':[118.02,39.63],'烟台':[121.39,37.53],'潍坊':[119.1,36.62],'保定':[115.48,38.85],'其他':[113.0,35.0]};
+            var data = [];
+            Object.keys(cityCount).forEach(function(city) {
+                var c = geoCoord[city] || [113,35];
+                data.push({ name: city, value: c.concat(cityCount[city]), count: cityCount[city] });
+            });
+            var option = {
+                tooltip: { trigger: 'item', formatter: function(p) { var projs = cityProjects[p.name] || []; return '<b>' + p.name + '</b>（' + projs.length + '个项目）<br/>' + projs.join('<br/>'); } },
+                geo: { map: 'china', roam: false, left: 0, right: 0, top: 10, bottom: 0, itemStyle: { areaColor: '#f5f5f5', borderColor: '#ddd' }, emphasis: { itemStyle: { areaColor: '#e8e8e8' } } },
+                series: [{ type: 'scatter', coordinateSystem: 'geo', data: data.filter(function(d) { return d.value && d.value.length >= 3; }), symbolSize: function(val) { return Math.max(10, Math.min(45, Math.sqrt(val[2] || 1) * 10)); }, itemStyle: { color: '#c9a962' }, label: { show: true, formatter: '{b}', position: 'right', fontSize: 10, color: '#555' }, emphasis: { itemStyle: { color: '#e74c3c' } } }]
+            };
+            fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+                .then(function(r) { return r.json(); })
+                .then(function(geo) { echarts.registerMap('china', geo); chart.setOption(option); })
+                .catch(function() { option.geo = null; option.xAxis = { type: 'value', show: false, min: 75, max: 135 }; option.yAxis = { type: 'value', show: false, min: 15, max: 55 }; option.series[0].type = 'scatter'; option.series[0].coordinateSystem = 'cartesian2d'; chart.setOption(option); });
+            window.addEventListener('resize', function() { chart.resize(); });
+        }
+
         // ==================== 项目信息管理 ====================
         window._projectsSelectedPid = null;
 
@@ -1491,9 +1895,8 @@
             let html = '<div class="sidebar-layout">';
 
             // ===== 左侧导航栏 =====
-            html += '<div class="sidebar-nav"><div class="sidebar-header">📋 项目列表</div>';
-            html += '<div style="padding:8px 10px;"><button class="btn btn-primary btn-sm" onclick="addNewProject()" style="width:100%;">+ 新增项目</button></div>';
-            html += '<div style="padding:0 10px 8px 10px;"><button class="btn btn-sm '+(window._projectsShowSummary?'btn-primary':'btn-outline')+'" style="width:100%;border-color:#999;color:'+(window._projectsShowSummary?'#fff':'#555')+';" onclick="selectProjectsSummary()">📊 全部标段汇总</button></div>';
+            html += '<div class="sidebar-nav"><div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between;">📋 项目列表<button class="btn btn-primary btn-sm btn-glow" onclick="addNewProject()" style="font-size:0.7em;padding:2px 8px;">+ 新增</button></div>';
+            html += '<div style="padding:4px 10px 8px 10px;"><button class="btn btn-sm '+(window._projectsShowSummary?'btn-primary':'btn-outline')+'" style="width:100%;border-color:#999;color:'+(window._projectsShowSummary?'#fff':'#555')+';" onclick="selectProjectsSummary()">📊 全部标段汇总</button></div>';
             COMPANIES.forEach(c => {
                 const cProjs = _projects.filter(p => p.company === c);
                 if (cProjs.length === 0) return;
@@ -1551,7 +1954,7 @@
                     }
                 });
                 html += '</div>';
-                html += '<div class="annual-table-wrap" style="max-height:60vh;overflow-x:hidden;"><table style="table-layout:fixed;width:100%;"><thead><tr><th style="width:40px;">公司</th><th style="width:76px;">项目</th><th style="width:38px;">负责人</th><th style="width:38px;">标段</th><th style="width:42px;">面积<br>(万m²)</th><th style="width:36px;">类型</th><th style="width:54px;">状态</th><th style="width:72px;">总承包</th><th style="width:44px;">交付<br>标准</th><th style="width:34px;">户数</th><th style="width:62px;">竣备</th><th style="width:62px;">交付</th><th style="width:62px;">合同<br>交付</th><th style="width:72px;">交付范围</th><th style="width:88px;">附加信息</th></tr></thead><tbody>';
+                html += '<div class="annual-table-wrap" style="max-height:78vh;overflow-x:hidden;"><table style="table-layout:fixed;width:100%;"><thead><tr><th style="width:40px;">公司</th><th style="width:76px;">项目</th><th style="width:38px;">负责人</th><th style="width:38px;">标段</th><th style="width:42px;">面积<br>(万m²)</th><th style="width:36px;">类型</th><th style="width:54px;">状态</th><th style="width:72px;">总承包</th><th style="width:44px;">交付<br>标准</th><th style="width:34px;">户数</th><th style="width:62px;">竣备</th><th style="width:62px;">交付</th><th style="width:62px;">合同<br>交付</th><th style="width:72px;">交付范围</th><th style="width:88px;">附加信息</th></tr></thead><tbody>';
                 const companyAccent = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
                 // 按公司→项目分组，合并单元格，项目间交替底色
                 let idx = 0, projToggle = 0;
@@ -1604,18 +2007,20 @@
                             if (k === pIdx) {
                                 html += '<td rowspan="'+projRowspan+'" style="font-size:0.74em;white-space:normal;word-break:break-all;line-height:1.2;vertical-align:middle;cursor:pointer;color:#2980b9;" onclick="editProject(\''+p.id+'\')" title="点击编辑项目">'+p.name+'</td>';
                             }
-                            html += '<td style="font-size:0.72em;white-space:normal;word-break:break-all;line-height:1.2;text-align:center;">'+(p.负责人||'')+'</td>';
+                            var hint = '<span style="color:#e74c3c;font-weight:bold;font-size:0.75em;">点击请录入</span>';
+                            html += '<td style="font-size:0.72em;white-space:normal;word-break:break-all;line-height:1.2;text-align:center;'+(p.负责人?'':'cursor:pointer;')+'"'+(p.负责人?'':' onclick="editProject(\''+p.id+'\')" title="点击录入"')+'>'+(p.负责人||hint)+'</td>';
                             html += '<td style="font-size:0.76em;white-space:normal;word-break:break-all;line-height:1.2;">'+ph.name+'</td>';
-                            html += '<td style="font-size:0.76em;text-align:center;">'+(ph.area||'')+'</td>';
+                            html += '<td style="font-size:0.76em;text-align:center;'+(ph.area?'':'cursor:pointer;')+'"'+(ph.area?'':' onclick="editProject(\''+p.id+'\')" title="点击录入"')+'>'+(ph.area||hint)+'</td>';
                             html += '<td style="text-align:center;"><span class="tag" style="font-size:0.68em;padding:1px 3px;'+(p.type==='操盘'?'background:#d4edda;color:#155724;':p.type==='合作'?'background:#fde2e7;color:#8b2244;':'background:#fef3cd;color:#856404;')+'">'+p.type+'</span></td>';
-                            html += '<td style="text-align:center;"><span class="tag" style="font-size:0.65em;padding:1px 2px;line-height:1.1;white-space:normal;'+(ph.status==='在建'?'background:#d6eaf8;color:#1a5276;':ph.status==='竣备待交付'?'background:#fef3cd;color:#856404;':ph.status==='停工'?'background:#fde8e8;color:#c0392b;':ph.status==='集中交付期内'?'background:#d1f2eb;color:#0e6251;':ph.status==='已移交物业'?'background:#d4edda;color:#155724;':'background:#eaeaea;color:#555;')+'">'+ph.status+'</span></td>';
-                            html += '<td style="font-size:0.72em;white-space:normal;word-break:break-all;line-height:1.2;">'+(ph.contractor||'')+'</td>';
-                            html += '<td style="font-size:0.72em;white-space:nowrap;text-align:center;">'+(ph.deliveryStandard||'')+'</td>';
-                            html += '<td style="font-size:0.76em;text-align:center;">'+(ph.deliveryUnits||'')+'</td>';
-                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+formatDate(ph.completionTime)+'</td>';
-                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+formatDate(ph.deliveryTime)+'</td>';
-                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+formatDate(ph.contractDeliveryTime)+'</td>';
-                            html += '<td style="font-size:0.68em;white-space:normal;word-break:break-all;line-height:1.2;">'+(ph.deliveryScope||'')+'</td>';
+                            html += '<td style="text-align:center;"><span class="tag" style="font-size:0.65em;padding:1px 2px;line-height:1.1;white-space:normal;'+(ph.status==='在建'?'background:#d6eaf8;color:#1a5276;':ph.status==='竣备待交付'?'background:#fef3cd;color:#856404;':ph.status==='停工'?'color:#c0392b;':ph.status==='集中交付期内'?'background:#d1f2eb;color:#0e6251;':ph.status==='已移交物业'?'background:#d4edda;color:#155724;':'background:#eaeaea;color:#555;')+'">'+ph.status+'</span></td>';
+                            var ehint = '<span style="color:#e74c3c;font-weight:bold;font-size:0.75em;cursor:pointer;" onclick="editProject(\''+p.id+'\')" title="点击录入">点击请录入</span>';
+                            html += '<td style="font-size:0.72em;white-space:normal;word-break:break-all;line-height:1.2;">'+(ph.contractor||ehint)+'</td>';
+                            html += '<td style="font-size:0.72em;white-space:nowrap;text-align:center;">'+(ph.deliveryStandard||ehint)+'</td>';
+                            html += '<td style="font-size:0.76em;text-align:center;">'+(ph.deliveryUnits||ehint)+'</td>';
+                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+(formatDate(ph.completionTime)||ehint)+'</td>';
+                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+(formatDate(ph.deliveryTime)||ehint)+'</td>';
+                            html += '<td style="font-size:0.7em;white-space:nowrap;text-align:center;">'+(formatDate(ph.contractDeliveryTime)||ehint)+'</td>';
+                            html += '<td style="font-size:0.68em;white-space:normal;word-break:break-all;line-height:1.2;">'+(ph.deliveryScope||ehint)+'</td>';
                             html += '<td style="font-size:0.68em;white-space:normal;word-break:break-all;line-height:1.2;">'+extraInfo+'</td>';
                             html += '</tr>';
                         }
@@ -1644,7 +2049,7 @@
                 html += '<span class="text-sm">🏠 户数: <b>'+totalUnits+'</b></span>';
                 html += '<span class="text-sm">📋 项目: <b>'+cProjs.length+'</b></span>';
                 html += '</div>';
-                html += '<div class="annual-table-wrap" style="max-height:55vh;overflow:auto;"><table style="table-layout:auto;font-size:0.78em;min-width:100%;"><thead><tr><th style="width:70px;">项目</th><th style="width:46px;">负责人</th><th style="width:42px;">标段</th><th style="width:44px;">面积<br>(万m²)</th><th style="width:40px;">类型</th><th style="width:56px;">状态</th><th style="min-width:80px;">总承包</th><th style="width:48px;">交付<br>标准</th><th style="width:38px;">户数</th><th style="width:64px;">竣备</th><th style="width:64px;">交付</th><th style="width:64px;">合同<br>交付</th><th style="width:64px;">承查<br>启动</th><th style="width:64px;">开放日</th><th style="width:64px;">联合<br>评估</th><th style="min-width:80px;">交付范围</th><th style="min-width:100px;">附加信息</th></tr></thead><tbody>';
+                html += '<div class="annual-table-wrap" style="max-height:75vh;overflow:auto;"><table style="table-layout:auto;font-size:0.78em;min-width:100%;"><thead><tr><th style="width:70px;">项目</th><th style="width:46px;">负责人</th><th style="width:42px;">标段</th><th style="width:44px;">面积<br>(万m²)</th><th style="width:40px;">类型</th><th style="width:56px;">状态</th><th style="min-width:80px;">总承包</th><th style="width:48px;">交付<br>标准</th><th style="width:38px;">户数</th><th style="width:64px;">竣备</th><th style="width:64px;">交付</th><th style="width:64px;">合同<br>交付</th><th style="width:64px;">承查<br>启动</th><th style="width:64px;">开放日</th><th style="width:64px;">联合<br>评估</th><th style="min-width:80px;">交付范围</th><th style="min-width:100px;">附加信息</th></tr></thead><tbody>';
                 let lastPid = '';
                 cPhases.forEach(x => {
                     const p = x.project, ph = x.phase;
@@ -1706,27 +2111,20 @@
                 html += '<button class="btn btn-sm btn-primary" onclick="editProject(\'' + selProj.id + '\')">✏️ 编辑</button>';
                 html += '<button class="btn btn-sm btn-danger" onclick="deleteProject(\'' + selProj.id + '\')">🗑️ 删除</button>';
                 html += '</div></div>';
-                html += '<div class="form-grid" style="margin-top:12px;">';
-                html += '<div class="form-group"><label>项目类型</label><span class="tag '+(selProj.type==='操盘'?'tag-green':selProj.type==='合作'?'tag-pink':'tag-yellow')+'">'+selProj.type+'</span></div>';
-                html += '<div class="form-group"><label>面积(万m²)</label><span>'+(selProj.area||'-')+'</span></div>';
-                html += '<div class="form-group"><label>工程负责人</label><span>'+(selProj.负责人||'-')+'</span></div>';
-                if (selProj.type === '操盘' || selProj.type === '代建' || selProj.type === '合作') html += '<div class="form-group"><label>土地获取时间</label><span>'+formatDate(selProj.landAcquisitionTime)+'</span></div>';
-                if (selProj.type === '操盘' || selProj.type === '合作') html += '<div class="form-group"><label>开盘时间</label><span>'+formatDate(selProj.openingTime)+'</span></div>';
-                if (selProj.type === '合作') {
-                    html += '<div class="form-group"><label>合作方</label><span>'+(selProj.partner||'-')+'</span></div>';
-                    html += '<div class="form-group"><label>我司股比</label><span>'+(selProj.shareRatio||'-')+'</span></div>';
-                    html += '<div class="form-group"><label>我司条线</label><span>'+(selProj.ourLines||'-')+'</span></div>';
-                }
-                if (selProj.type === '代建') {
-                    html += '<div class="form-group"><label>业主方</label><span>'+(selProj.owner||'-')+'</span></div>';
-                    html += '<div class="form-group"><label>代建中标时间</label><span>'+formatDate(selProj.bidWinTime)+'</span></div>';
-                    html += '<div class="form-group"><label>代建条线</label><span>'+(selProj.agentLines||'-')+'</span></div>';
-                    html += '<div class="form-group"><label>品牌输出</label><span>'+(selProj.brandOutput||'-')+'</span></div>';
-                }
-                if (selProj._importInfo) html += '<div class="form-group"><label>导入信息</label><span class="text-sm">'+selProj._importInfo+'</span></div>';
-                html += '</div>';
-                html += '<h4 style="margin-top:16px;">📐 标段信息</h4>';
-                html += '<table><thead><tr><th>标段名称</th><th>面积(万m²)</th><th>状态</th><th>施工总承包</th><th>交付标准</th><th>交付户数</th><th>竣备时间</th><th>交付时间</th><th>合同交付时间</th><th>承查启动</th><th>开放日计划</th><th>联合评估计划</th><th>交付范围</th></tr></thead><tbody>';
+                html += '<div style="margin-top:12px;padding:10px 14px;background:#f8f9fa;border-radius:8px;">';
+                html += '<div style="font-weight:700;color:var(--primary);margin-bottom:8px;">📋 项目基本信息</div>';
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 16px;font-size:0.9em;">';
+                var infoItem = function(l,v) { return '<div><span style="color:#888;font-size:0.8em;">'+l+'</span><br><span style="font-weight:500;">'+(v||'<span style="color:#ccc;">—</span>')+'</span></div>'; };
+                html += infoItem('项目类型','<span class=\"tag '+(selProj.type==='操盘'?'tag-green':selProj.type==='合作'?'tag-pink':'tag-yellow')+'\">'+selProj.type+'</span>');
+                html += infoItem('面积(万m²)',selProj.area);
+                html += infoItem('工程负责人',selProj.负责人);
+                if (selProj.type==='操盘'||selProj.type==='代建'||selProj.type==='合作') html += infoItem('土地获取时间',formatDate(selProj.landAcquisitionTime));
+                if (selProj.type==='操盘'||selProj.type==='合作') html += infoItem('开盘时间',formatDate(selProj.openingTime));
+                if (selProj.type==='合作') { html += infoItem('合作方',selProj.partner); html += infoItem('我司股比',selProj.shareRatio); html += infoItem('我司条线',selProj.ourLines); }
+                if (selProj.type==='代建') { html += infoItem('业主方',selProj.owner); html += infoItem('代建中标时间',formatDate(selProj.bidWinTime)); html += infoItem('代建条线',selProj.agentLines); html += infoItem('品牌输出',selProj.brandOutput); }
+                html += '</div></div>';
+                html += '<h4 style="margin-top:14px;">📐 标段信息</h4>';
+                html += '<div class="annual-table-wrap" style="max-height:50vh;overflow:auto;"><table style="font-size:0.78em;"><thead><tr><th>标段名称</th><th>面积(万m²)</th><th>状态</th><th>施工总承包</th><th>交付标准</th><th>交付户数</th><th>竣备时间</th><th>交付时间</th><th>合同交付时间</th><th>承查启动</th><th>开放日计划</th><th>联合评估计划</th><th>交付范围</th></tr></thead><tbody>';
                 (selProj.phases||[]).forEach(ph => {
                     html += '<tr><td><strong>'+ph.name+'</strong></td><td>'+(ph.area||'')+'</td>';
                     html += '<td><span class="tag '+(ph.status==='在建'?'tag-blue':ph.status==='竣备待交付'?'tag-yellow':ph.status==='停工'?'tag-red':ph.status==='集中交付期内'?'tag-teal':ph.status==='已移交物业'?'tag-green':'tag-gray')+'">'+ph.status+'</span></td>';
@@ -1735,7 +2133,7 @@
                     html += '<td>'+formatDate(ph.inspectionStartTime)+'</td><td>'+formatDate(ph.openDayPlanTime)+'</td><td>'+formatDate(ph.jointEvalPlanTime)+'</td>';
                     html += '<td style="font-size:0.78em;">'+(ph.deliveryScope||'')+'</td></tr>';
                 });
-                html += '</tbody></table></div>';
+                html += '</tbody></table></div></div>';
             } else {
                 html += '<div class="card" style="text-align:center;padding:60px;color:#bbb;"><p style="font-size:3em;">📋</p><p>请在左侧导航栏选择项目</p></div>';
             }
@@ -1815,18 +2213,20 @@
         function editProject(pid) {
             const p = _projects.find(x => x.id === pid);
             if (!p) return;
-            let html = '<div class="modal-overlay" id="editModal" style="display:flex;"><div class="modal" style="max-width:900px;">';
-            html += '<h3>✏️ 编辑项目: ' + p.name + '</h3>';
+            let html = '<div class="modal-overlay edit-modal" id="editModal" style="display:flex;"><div class="modal" style="max-width:1350px;width:96vw;font-size:0.8em;padding:14px 20px;">';
+            html += '<h3 style="margin:0 0 6px 0;font-size:1.1em;">✏️ 编辑项目: ' + p.name + '</h3>';
 
-            // ===== 项目基本信息 =====
-            html += '<fieldset style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin-bottom:12px;"><legend style="font-weight:700;color:var(--primary);padding:0 8px;">📋 项目基本信息</legend>';
-            html += '<div class="form-grid wide" style="grid-template-columns:1fr 1fr 1fr;">';
+            // 左右布局
+            html += '<div style="display:flex;gap:10px;">';
+            // ===== 左：项目基本信息 =====
+            html += '<div style="flex:0 0 360px;">';
+            html += '<fieldset style="border:1px solid #ddd;border-radius:6px;padding:6px 10px;height:100%;"><legend style="font-weight:700;color:var(--primary);padding:0 6px;font-size:0.95em;">📋 项目基本信息</legend>';
+            html += '<div class="form-grid" style="grid-template-columns:'+(p.type==='合作'?'1fr 1fr':'1fr')+';">';
             html += `<div class="form-group"><label>项目名称</label><input id="ep_name" value="${p.name||''}"></div>`;
             html += `<div class="form-group"><label>所属公司</label><select id="ep_company">${COMPANIES.map(c=>`<option ${p.company===c?'selected':''}>${c}</option>`).join('')}</select></div>`;
             html += `<div class="form-group"><label>项目类型</label><select id="ep_type" onchange="toggleTypeFields()">${PROJECT_TYPES.map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join('')}</select></div>`;
             html += `<div class="form-group"><label>项目面积(万m²)</label><input id="ep_area" value="${p.area||''}" oninput="checkAreaInput(this)"></div>`;
             html += `<div class="form-group"><label>工程负责人</label><input id="ep_person" value="${p.负责人||''}"></div>`;
-            // 类型专用字段
             html += `<div class="form-group type-field 操盘代建合作" style="display:${p.type==='操盘'||p.type==='代建'||p.type==='合作'?'':'none'}"><label>土地获取时间</label><input type="date" id="ep_land" value="${p.landAcquisitionTime||''}"></div>`;
             html += `<div class="form-group type-field 操盘合作" style="display:${p.type==='操盘'||p.type==='合作'?'':'none'}"><label>开盘时间</label><input type="date" id="ep_open" value="${p.openingTime||''}"></div>`;
             html += `<div class="form-group type-field 合作" style="display:${p.type==='合作'?'':'none'}"><label>合作方</label><input id="ep_partner" value="${p.partner||''}"></div>`;
@@ -1836,14 +2236,17 @@
             html += `<div class="form-group type-field 代建" style="display:${p.type==='代建'?'':'none'}"><label>代建中标时间</label><input type="date" id="ep_bid" value="${p.bidWinTime||''}"></div>`;
             html += `<div class="form-group type-field 代建" style="display:${p.type==='代建'?'':'none'}"><label>代建条线</label><input id="ep_agentLines" value="${p.agentLines||''}"></div>`;
             html += `<div class="form-group type-field 代建" style="display:${p.type==='代建'?'':'none'}"><label>品牌输出</label><select id="ep_brand"><option ${p.brandOutput==='是'?'selected':''}>是</option><option ${p.brandOutput==='否'?'selected':''}>否</option></select></div>`;
-            html += '</div></fieldset>';
+            html += '</div></fieldset></div>';
 
-            // ===== 标段信息 =====
-            html += '<fieldset style="border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin-bottom:12px;"><legend style="font-weight:700;color:var(--primary);padding:0 8px;">📐 标段信息</legend>';
-            html += '<div id="ep_phases_container">';
+            // ===== 右：标段信息 =====
+            html += '<div style="flex:1;min-width:0;">';
+            html += '<fieldset style="border:1px solid #ddd;border-radius:6px;padding:6px 10px;"><legend style="font-weight:700;color:var(--primary);padding:0 6px;font-size:0.95em;">📐 标段信息</legend>';
+            html += '<div id="ep_phases_container" style="max-height:55vh;overflow-y:auto;">';
+            var phaseBgs = ['#fafbfc','#f0f4f8','#fafbfc','#f0f4f8','#fafbfc','#f0f4f8'];
             (p.phases || []).forEach((ph, i) => {
-                html += '<div class="phase-card" style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;margin-bottom:8px;background:#fafbfc;">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-weight:600;color:#444;">📌 标段 '+(i+1)+': <span class="eph_name_display">'+(ph.name||'')+'</span></span><button class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">✕ 删除</button></div>';
+                var pbg = phaseBgs[i % phaseBgs.length];
+                html += '<div class="phase-card" style="border:1px solid #e0e0e0;border-radius:4px;padding:6px 8px;margin-bottom:4px;background:'+pbg+';">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-weight:600;color:#444;font-size:0.9em;">📌 标段 '+(i+1)+': <span class="eph_name_display">'+(ph.name||'')+'</span></span><button class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">✕ 删除</button></div>';
                 html += '<div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
                 html += '<div class="form-group"><label>标段名称</label><input class="eph_name" value="'+(ph.name||'')+'" oninput="this.parentElement.parentElement.parentElement.querySelector(\'.eph_name_display\').textContent=this.value||\'-\'"></div>';
                 html += '<div class="form-group"><label>面积(万m²)</label><input class="eph_area" value="'+(ph.area||'')+'" oninput="checkAreaInput(this)"></div>';
@@ -1858,13 +2261,14 @@
                 html += '<div class="form-group"><label>工地开放日</label><input type="date" class="eph_odp" value="'+(ph.openDayPlanTime||'')+'"></div>';
                 html += '<div class="form-group"><label>联合评估计划</label><input type="date" class="eph_jep" value="'+(ph.jointEvalPlanTime||'')+'"></div>';
                 html += '</div>';
-                html += '<div class="form-group" style="margin-top:6px;"><label>交付范围</label><input class="eph_scope" value="'+(ph.deliveryScope||'')+'" placeholder="如: 1#-8#楼"></div>';
+                html += '<div class="form-group" style="margin-top:3px;"><label>交付范围</label><input class="eph_scope" value="'+(ph.deliveryScope||'')+'" placeholder="如: 1#-8#楼"></div>';
                 html += '<input type="hidden" class="eph_id" value="'+(ph.id||'')+'">';
                 html += '</div>';
             });
             html += '</div>';
-            html += '<button class="btn btn-sm btn-info mt-8" onclick="addPhaseToEdit()">+ 添加标段</button>';
-            html += '</fieldset>';
+            html += '<button class="btn btn-sm btn-info mt-4" onclick="addPhaseToEdit()">+ 添加标段</button>';
+            html += '</fieldset></div>';
+            html += '</div>';
 
             html += '<div class="flex-row mt-12" style="justify-content:flex-end;gap:8px;">';
             html += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="closeEditModal()">取消</button>';
@@ -1888,7 +2292,8 @@
             const idx = container.querySelectorAll('.phase-card').length + 1;
             const div = document.createElement('div');
             div.className = 'phase-card';
-            div.style.cssText = 'border:1px solid #e0e0e0;border-radius:6px;padding:12px;margin-bottom:8px;background:#fafbfc;';
+            var pbg2 = idx % 2 === 1 ? '#fafbfc' : '#f0f4f8';
+            div.style.cssText = 'border:1px solid #e0e0e0;border-radius:6px;padding:10px;margin-bottom:6px;background:'+pbg2+';';
             div.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-weight:600;color:#444;">📌 标段 '+idx+': <span class="eph_name_display">新标段</span></span><button class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">✕ 删除</button></div>'+
                 '<div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">'+
@@ -2006,7 +2411,7 @@
             _projects.forEach(p => {
                 if (selCompany && p.company !== selCompany) return;
                 (p.phases||[]).forEach(ph => {
-                    if (ph.status === '未开工' || ph.status === '已移交物业') return;
+                    if (ph.status === '已移交物业') return;
                     if (!ph.currentFeedback) ph.currentFeedback = getDefaultFeedback();
                     allRows.push({ project: p, phase: ph, fb: ph.currentFeedback });
                 });
@@ -2033,7 +2438,6 @@
             html += '<div class="sidebar-content">';
             html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><h3 style="margin:0;">📝 月度信息反馈</h3><button class="btn btn-sm btn-outline no-print" style="border-color:#999;color:#555;" onclick="printMonthlyReport()">🖨️ 打印报告</button></div>';
             if (selCompany) html += '<p class="text-sm" style="color:var(--accent);">📍 筛选公司：<strong>'+selCompany+'</strong></p>';
-            html += '<p class="text-sm mb-8">点击表格中的蓝色文字即可编辑对应内容，编辑后自动保存。</p>';
 
             // 文字总结
             const today2 = new Date(); today2.setHours(0,0,0,0);
@@ -2074,29 +2478,34 @@
             const measCompanies = Object.keys(measByCompany).sort((a,b) => COMPANIES.indexOf(a)-COMPANIES.indexOf(b));
             let totalPhases = 0, totalMeasured = 0, totalMeasScore = 0;
             measCompanies.forEach(c => { const m = measByCompany[c]; totalPhases += m.total; totalMeasured += m.measured; totalMeasScore += m.scoreSum; });
+            html += '<span style="font-size:0.62em;color:#999;cursor:pointer;" onclick="var el=document.getElementById(\'monthlySummaryWrap\');var s=el.style.display===\'none\';el.style.display=s?\'block\':\'none\';localStorage.setItem(\'showMonthlySummary\',s?\'1\':\'0\');this.textContent=s?\'🔽 隐藏总结\':\'▶ 显示总结\';">'+(localStorage.getItem('showMonthlySummary')!=='0'?'🔽 隐藏总结':'▶ 显示总结')+'</span>';
+            html += '<div id="monthlySummaryWrap" style="display:'+(localStorage.getItem('showMonthlySummary')!=='0'?'block':'none')+';">';
             if (totalDel > 0 || totalPhases > 0) {
                 html += '<div style="margin-bottom:8px;padding:8px 12px;background:#f0f7ff;border-left:3px solid #2980b9;border-radius:4px;font-size:0.78em;color:#555;line-height:1.6;">';
                 html += '<b style="color:#1a3c5e;">📋 截至今日项目总结：</b><br>';
                 if (totalDel > 0) {
-                    html += '<b>一、至年底需交付项目（'+totalDel+'个）：</b><br>';
+                    var delItems = [];
                     delCompanies.forEach(c => {
                         const items = deliveryByCompany[c].map((d, i) => (i+1)+'. <b>'+d.name+'</b> '+d.phaseName+'，交付倒计时'+(d.diffDays<120?'<b style="color:#e74c3c;">'+d.diffDays+'</b>':'<b>'+d.diffDays+'</b>')+'天，承接查验'+d.crStatus);
-                        html += '【'+c+'公司】'+items.join('；')+'。<br>';
+                        delItems.push('<b style=\"color:#2980b9;\">【'+c+'公司】</b>'+items.join('；'));
                     });
+                    html += '<b>一、至年底需交付项目（'+totalDel+'个）：</b>'+delItems.join('；')+'。<br>';
                 }
                 if (totalPhases > 0) {
                     const allCov = (totalMeasured/totalPhases*100).toFixed(0);
                     const allAvg = totalMeasured > 0 ? (totalMeasScore/totalMeasured).toFixed(1) : '-';
-                    html += '<b>二、在建项目月度实测（整体覆盖率<b>'+allCov+'%</b>，平均得分<b>'+allAvg+'</b>分）：</b><br>';
+                    var measItems = [];
                     measCompanies.forEach(c => {
-                        const m = measByCompany[c];
-                        const cov = (m.measured/m.total*100).toFixed(0);
-                        const avg = m.measured > 0 ? (m.scoreSum/m.measured).toFixed(1) : '-';
-                        html += '【'+c+'公司】覆盖率<b>'+cov+'%</b>（'+m.measured+'/'+m.total+'），平均得分<b>'+avg+'</b>分。<br>';
+                        var m = measByCompany[c];
+                        var cov = (m.measured/m.total*100).toFixed(0);
+                        var avg = m.measured > 0 ? (m.scoreSum/m.measured).toFixed(1) : '-';
+                        measItems.push('<b>'+c+'公司</b>覆盖率<b>'+cov+'%</b>（'+m.measured+'/'+m.total+'），平均得分<b>'+avg+'</b>分');
                     });
+                    html += '<b>二、在建项目月度实测（整体覆盖率<b>'+allCov+'%</b>，平均得分<b>'+allAvg+'</b>分）：</b>'+measItems.join('；')+'。<br>';
                 }
                 html += '</div>';
             }
+            html += '</div>';
 
             // 表格
             html += '<div class="annual-table-wrap" style="max-height:60vh;overflow:auto;"><table style="table-layout:auto;font-size:0.78em;min-width:100%;">';
@@ -2109,8 +2518,8 @@
 
             // 表头第一行
             html += '<tr><th rowspan="2" style="width:44px;">公司</th><th rowspan="2" style="width:72px;">项目</th><th rowspan="2" style="width:50px;">标段</th><th rowspan="2" style="width:62px;">状态</th><th rowspan="2" style="width:72px;">交付时间</th>';
-            if (showDetailCols) html += '<th rowspan="2" style="width:90px;">进度概况</th><th rowspan="2" style="width:90px;">月度实测</th><th colspan="2" style="min-width:130px;">承接查验</th>';
-            html += '<th rowspan="2" style="width:58px;">备注</th>';
+            if (showDetailCols) html += '<th rowspan="2" style="width:90px;">项目概况</th><th rowspan="2" style="width:90px;">月度实测</th><th colspan="2" style="min-width:130px;">承接查验</th>';
+            html += '<th rowspan="2" style="width:36px;">备注</th>';
             html += '</tr>';
             // 表头第二行（承接查验子列）
             html += '<tr>';
@@ -2119,7 +2528,7 @@
 
             html += '</thead><tbody>';
 
-            const placeholder = '<span style="color:#e67e22;font-style:italic;">点击录入信息</span>';
+            const placeholder = '<span style="color:#555;font-style:italic;">点击录入信息</span>';
             const companyAccent = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
             // 按公司→项目分组，合并单元格，项目间交替底色
             let idx = 0, projToggle = 0;
@@ -2167,6 +2576,7 @@
                                 if (stage) sum7 += '<b>'+stage+'</b>';
                                 if (avg > 0) sum7 += (sum7?'<br>':'')+'进度 <b>'+avg.toFixed(1)+'%</b>';
                             }
+                            if (sum7 && fb.lastUpdate) sum7 += '<br><span style="font-size:0.62em;color:#999;">'+fb.lastUpdate.substring(0,16)+'</span>';
                             html += '<td style="cursor:pointer;font-size:0.78em;line-height:1.3;'+(sum7?'color:#2980b9;':'')+'" onclick="editProgressFeedback(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑进度">'+(sum7||placeholder)+'</td>';
                             if (p.type === '代建') {
                                 // 代建项目：月度实测、承接查验均用斜杠
@@ -2176,35 +2586,50 @@
                                 // 月度实测
                                 const mc = fb.threeFourCheck?.measCheck;
                                 let sumMeas = '';
-                                if (mc?.type) sumMeas += '<b>'+mc.type+'</b>';
-                                if (mc?.score) sumMeas += (sumMeas?'<br>':'')+'实测 <b>'+mc.score+'分</b>';
+                                if (mc?.type) sumMeas += mc.type;
+                                if (mc?.score) sumMeas += (sumMeas?'<br>':'')+'实测 '+mc.score+'%';
+                                if (sumMeas && fb.lastUpdate) sumMeas += '<br><span style="font-size:0.62em;color:#999;">'+fb.lastUpdate.substring(0,16)+'</span>';
                                 html += '<td style="cursor:pointer;font-size:0.78em;line-height:1.3;'+(sumMeas?'color:#2980b9;':'')+'" onclick="editMonthlyMeasurement(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑月度实测">'+(sumMeas||placeholder)+'</td>';
                                 // 判断是否达到承接查验启动时间
                                 const today = new Date(); today.setHours(0,0,0,0);
                                 const inspDate = ph.inspectionStartTime ? new Date(ph.inspectionStartTime) : null;
-                                const crNotStarted = !inspDate || today < inspDate;
-                                let sum9 = '';
-                                if (crNotStarted) {
-                                    sum9 = '<span style="color:#999;">/</span>';
-                                } else {
-                                    const crStats = getCRStatsFromFB(fb);
+                                var delDate2 = ph.deliveryTime ? new Date(ph.deliveryTime) : null;
+                                var daysToDelivery = delDate2 ? Math.ceil((delDate2 - today) / (1000*60*60*24)) : 999;
+                                var needCR = (inspDate && today >= inspDate) || daysToDelivery <= 120;
+                                var sum9 = '';
+                                if (needCR) {
+                                    var crStats = getCRStatsFromFB(fb);
                                     if (crStats.y > 0) sum9 = '已开展<b>'+crStats.y+'</b>轮, 剩余<b>'+crStats.z+'</b>条';
                                     if (crStats.m > 0) sum9 += ', 户均<b>'+crStats.m.toFixed(2)+'</b>条';
-                                    const od = fb.threeFourCheck?.openDay;
-                                if (od?.conducted) sum9 += ' | 开放日已开展';
-                            }
-                            html += '<td style="text-align:center;font-size:0.78em;'+(sum9&&!crNotStarted?'color:#2980b9;cursor:pointer;':'')+'"'+(crNotStarted?'':' onclick="editThreeFourCheck(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑承接查验"')+'>'+(sum9||placeholder)+'</td>';
+                                    var od = fb.threeFourCheck ? fb.threeFourCheck.openDay : null;
+                                    if (od && od.conducted) sum9 += ' | 开放日已开展';
+                                    if (sum9 && fb.lastUpdate) sum9 += '<br><span style=\"font-size:0.62em;color:#999;\">'+fb.lastUpdate.substring(0,16)+'</span>';
+                                    html += '<td style=\"text-align:center;font-size:0.78em;cursor:pointer;'+(sum9?'color:#2980b9;':'')+'\" onclick=\"editThreeFourCheck(&apos;'+p.id+'&apos;,&apos;'+ph.id+'&apos;)\" title=\"点击编辑承接查验\">'+(sum9||placeholder)+'</td>';
+                                } else {
+                                    html += '<td style=\"text-align:center;font-size:0.78em;\"><span style=\"color:#999;\">/</span></td>';
+                                }
                             } // end else (非代建)
                             // 距交付倒计时
                             html += '<td style="text-align:center;font-size:0.78em;">'+formatCountdown(ph)+'</td>';
                             // 备注（自动显示最后录入时间）
                             const lastDate = fb.lastUpdate ? fb.lastUpdate.substring(0,10) : '';
-                            html += '<td style="font-size:0.7em;color:#999;text-align:center;white-space:nowrap;">'+lastDate+' <button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
+                            html += '<td style="font-size:0.62em;color:#999;text-align:center;white-space:nowrap;"><button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
+                        } else if (ph.status === '未开工') {
+                            var slash4 = '<span style="color:#999;">/</span>';
+                            var placeholder4 = '<span style="color:#555;font-style:italic;">点击录入<b>未开工原因</b></span>';
+                            var noteText4 = fb.customNote || '';
+                            html += '<td style="cursor:pointer;font-size:0.78em;'+(noteText4?'color:#2980b9;':'')+'" onclick="editCustomNote(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑未开工原因">'+(noteText4||placeholder4)+'</td>';
+                            html += '<td style="text-align:center;font-size:0.78em;">'+slash4+'</td>';
+                            html += '<td style="text-align:center;font-size:0.78em;">'+slash4+'</td>';
+                            html += '<td style="text-align:center;font-size:0.78em;">'+formatCountdown(ph)+'</td>';
+                            var lastDate4 = fb.lastUpdate ? fb.lastUpdate.substring(0,10) : '';
+                            html += '<td style="font-size:0.62em;color:#999;text-align:center;white-space:nowrap;"><button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
                         } else if (ph.status === '停工') {
                             const slash = '<span style="color:#999;">/</span>';
                             // 进度概况（停工可编辑备注）
                             let noteText = fb.customNote || '';
-                            html += '<td style="cursor:pointer;font-size:0.78em;'+(noteText?'color:#2980b9;':'')+'" onclick="editCustomNote(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑停工备注">'+(noteText||placeholder)+'</td>';
+                            var placeholder3 = '<span style="color:#555;font-style:italic;">点击录入<b>停工原因</b></span>';
+                            html += '<td style="cursor:pointer;font-size:0.78em;'+(noteText?'color:#2980b9;':'')+'" onclick="editCustomNote(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑停工备注">'+(noteText||placeholder3)+'</td>';
                             // 月度实测 — 斜杠
                             html += '<td style="text-align:center;font-size:0.78em;">'+slash+'</td>';
                             // 承接查验数据 — 斜杠
@@ -2212,7 +2637,7 @@
                             // 距交付
                             html += '<td style="text-align:center;font-size:0.78em;">'+formatCountdown(ph)+'</td>';
                             const lastDate2 = fb.lastUpdate ? fb.lastUpdate.substring(0,10) : '';
-                            html += '<td style="font-size:0.7em;color:#999;text-align:center;white-space:nowrap;">'+lastDate2+' <button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
+                            html += '<td style="font-size:0.62em;color:#999;text-align:center;white-space:nowrap;"><button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
                         } else if (ph.status === '集中交付期内') {
                             const slash2 = '<span style="color:#999;">/</span>';
                             const t1 = fb.twoOne;
@@ -2221,7 +2646,8 @@
                             if (t1?.issuesPerHousehold) delSum += '户均问题<b>'+t1.issuesPerHousehold+'</b>条';
                             if (t1?.actualUnits) { const total = ph.deliveryUnits||1; delSum += (delSum?'<br>':'')+'交付率<b>'+(parseFloat(t1.actualUnits)/total*100).toFixed(1)+'%</b>'; }
                             if (t1?.indicator2) delSum += (delSum?'<br>':'')+'渗漏: '+t1.indicator2;
-                            html += '<td style="cursor:pointer;font-size:0.78em;line-height:1.3;'+(delSum?'color:#2980b9;':'')+'" onclick="editDeliveryFeedback(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑交付反馈">'+(delSum||placeholder)+'</td>';
+                            var placeholder2 = '<span style="color:#555;font-style:italic;">点击录入<b>两个1</b>信息</span>';
+                            html += '<td style="cursor:pointer;font-size:0.78em;line-height:1.3;'+(delSum?'color:#2980b9;':'')+'" onclick="editDeliveryFeedback(\''+p.id+'\',\''+ph.id+'\')" title="点击编辑交付反馈">'+(delSum||placeholder2)+'</td>';
                             // 月度实测 — 斜杠
                             html += '<td style="text-align:center;font-size:0.78em;">'+slash2+'</td>';
                             // 承接查验数据 — 斜杠
@@ -2229,7 +2655,7 @@
                             // 距交付
                             html += '<td style="text-align:center;font-size:0.78em;">'+formatCountdown(ph)+'</td>';
                             const lastDate3 = fb.lastUpdate ? fb.lastUpdate.substring(0,10) : '';
-                            html += '<td style="font-size:0.7em;color:#999;text-align:center;white-space:nowrap;">'+lastDate3+' <button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
+                            html += '<td style="font-size:0.62em;color:#999;text-align:center;white-space:nowrap;"><button class="btn btn-sm btn-danger" style="font-size:0.6em;padding:1px 4px;" onclick="clearMonthlyFeedback(\''+p.id+'\',\''+ph.id+'\')" title="清除录入数据">✕</button></td>';
                         }
                         html += '</tr>';
                     }
@@ -2257,7 +2683,7 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const delDate = new Date(ph.deliveryTime);
             const diffDays = Math.ceil((delDate - today) / (1000*60*60*24));
-            if (diffDays > 60) return diffDays+'d';
+            if (diffDays > 60) return ''+diffDays+'d';
             else if (diffDays >= 30) return '<b style="color:#f39c12;">'+diffDays+'d</b>';
             else if (diffDays > 0) return '<b style="color:#e74c3c;">'+diffDays+'d</b>';
             else if (diffDays === 0) return '<b style="color:#f39c12;">今天</b>';
@@ -2308,13 +2734,13 @@
         }
 
         // 编辑进度反馈（在建/竣备待交付）
-        const PROJECT_STAGES = ['未开工','基坑阶段','主体阶段','抹灰阶段','精装阶段'];
+        const PROJECT_STAGES = ['未开工','基坑阶段','主体阶段','抹灰阶段','精装阶段','基本完活'];
         function editProgressFeedback(pid, phid) {
             const data = getPhaseByIds(pid, phid);
             if (!data) return;
             const { project: p, phase: ph, fb } = data;
             const isJb = ph.status === '竣备待交付';
-            let html = '<div class="modal-overlay" id="progressEditModal" style="display:flex;"><div class="modal" style="max-width:'+(isJb?'450px':'600px')+';">';
+            let html = '<div class="modal-overlay" id="progressEditModal" style="display:flex;"><div class="modal" style="max-width:'+(isJb?'400px':'725px')+';">';
             html += '<h3>📈 进度反馈 - '+p.company+' · '+p.name+' / '+ph.name+'</h3>';
             if (isJb) {
                 // 竣备待交付：仅文字录入
@@ -2322,17 +2748,18 @@
             } else {
                 // 在建：阶段点选 + 进度概况
                 html += '<div class="card" style="margin:8px 0;background:#fafbfc;padding:16px;">';
-                const curStage = fb.progress.stage || '';
-                html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="projStageGroup">';
+                const curStage = fb.progress.stage || '基坑阶段';
+                html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-weight:600;color:#555;font-size:0.85em;white-space:nowrap;">阶段选择</span>';
+                html += '<div style="display:flex;gap:6px;flex-wrap:wrap;" id="projStageGroup">';
                 PROJECT_STAGES.forEach(s => {
                     const isSel = curStage === s;
                     html += '<span style="cursor:pointer;padding:5px 12px;border-radius:6px;font-size:0.82em;font-weight:500;transition:all 0.15s;'+(isSel?'background:#1a3c5e;color:#fff;':'background:#eee;color:#666;')+'border:1px solid '+(isSel?'#1a3c5e':'#ddd')+';" onclick="selectProjStage(this,\''+s+'\')" data-stage="'+s+'">'+s+'</span>';
                 });
-                html += '<input type="hidden" id="projStage" value="'+curStage+'"></div>';
-                html += '<div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">';
+                html += '<input type="hidden" id="projStage" value="'+curStage+'"></div></div>';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
                 ['indoor','public','facade','outdoor','basement'].forEach((k,i) => {
                     const labels = ['室内进度','公区进度','外立面进度','室外进度','地下室进度'];
-                    html += '<div class="form-group"><label>'+labels[i]+' (%)</label><input type="number" min="0" max="100" class="progress-input" data-key="'+k+'" value="'+(fb.progress[k]||'')+'" oninput="this.value=Math.min(100,Math.max(0,this.value))"></div>';
+                    html += '<div class="form-group" style="flex:1;min-width:90px;"><label>'+labels[i]+' (%)</label><input type="number" min="0" max="100" class="progress-input" data-key="'+k+'" value="'+(fb.progress[k]||'')+'" placeholder="0-100" oninput="this.value=Math.min(100,Math.max(0,this.value))" style="width:100%;"></div>';
                 });
                 html += '</div></div>';
             }
@@ -2385,7 +2812,7 @@
             html += '<h3>📏 月度实测 - '+p.company+' · '+p.name+' / '+ph.name+'</h3>';
             html += '<div class="form-grid">';
             html += '<div class="form-group"><label>检查类型</label><select id="meas_type">'+CHECK_TYPES.map(ct=>'<option '+(mc.type===ct?'selected':'')+'>'+ct+'</option>').join('')+'</select></div>';
-            html += '<div class="form-group"><label>实测得分(%)</label><input type="number" id="meas_score" value="'+(mc.score||'')+'" min="0" max="100"></div>';
+            html += '<div class="form-group"><label>实测得分(%)</label><input type="number" id="meas_score" value="'+(mc.score||'')+'" min="0" max="100" step="0.01" placeholder="0-100" onchange="var v=parseFloat(this.value);if(isNaN(v)||v<0)this.value=\'\';else if(v>100)this.value=100;"></div>';
             html += '</div>';
             html += '<div class="flex-row mt-12" style="justify-content:flex-end;gap:8px;">';
             html += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="document.getElementById(\'measEditModal\').remove()">取消</button>';
@@ -2412,25 +2839,27 @@
 
         // 编辑承接查验
         function editThreeFourCheck(pid, phid) {
-            const data = getPhaseByIds(pid, phid);
-            if (!data) return;
-            const { project: p, phase: ph, fb } = data;
-            let html = '<div class="modal-overlay" id="tfcEditModal" style="display:flex;"><div class="modal" style="max-width:550px;">';
-            html += '<h3>🔍 承接查验 - '+p.company+' · '+p.name+' / '+ph.name+'</h3>';
-            html += '<table style="margin-top:12px;"><thead><tr><th>轮次</th><th>是否开展</th><th>剩余未销项条数</th></tr></thead><tbody>';
-            for (let r=1; r<=3; r++) {
-                const rd = fb.threeFourCheck.inspectionRoundsData?.[r-1] || {conducted:false,remaining:0,scope:'',unit:''};
-                html += '<tr><td>第'+r+'轮</td>';
-                html += '<td style="white-space:nowrap;"><label class="ios-switch"><input type="checkbox" class="cr_conducted_modal" data-round="'+r+'" '+(rd.conducted?'checked':'')+' onchange="toggleCRModalStatus(this)"><span class="slider"></span></label> <span class="cr_modal_status_text" style="font-size:0.75em;color:#999;">'+(rd.conducted?'已开展':'未开展')+'</span></td>';
-                html += '<td><input type="number" class="cr_remaining_modal" data-round="'+r+'" value="'+(rd.remaining||0)+'" '+(rd.conducted?'':'disabled')+'></td>';
-                html += '</tr>';
+            var data = getPhaseByIds(pid, phid);
+            if (!data) { showToast('未找到数据'); return; }
+            var p = data.project, ph = data.phase, fb = data.fb;
+            if (!fb.threeFourCheck) fb.threeFourCheck = {};
+            if (!fb.threeFourCheck.inspectionRoundsData) fb.threeFourCheck.inspectionRoundsData = [{},{},{}];
+            var h = '<div class="modal-overlay" id="tfcEditModal" style="display:flex;"><div class="modal" style="max-width:500px;">';
+            h += '<h3>🔍 承接查验 - '+p.company+' · '+p.name+' / '+ph.name+'</h3>';
+            h += '<table style="margin-top:10px;"><thead><tr><th>轮次</th><th>是否开展</th><th>剩余未销项条数</th></tr></thead><tbody>';
+            for (var r=1; r<=3; r++) {
+                var rd = fb.threeFourCheck.inspectionRoundsData[r-1] || {conducted:false,remaining:0};
+                h += '<tr><td>第'+r+'轮</td>';
+                h += '<td style="white-space:nowrap;"><label class="ios-switch"><input type="checkbox" class="cr_conducted_modal" data-round="'+r+'" '+(rd.conducted?'checked':'')+' onchange="toggleCRModalStatus(this)"><span class="slider"></span></label> <span class="cr_modal_status_text" style="font-size:0.75em;color:#999;">'+(rd.conducted?'已开展':'未开展')+'</span></td>';
+                h += '<td><input type="number" class="cr_remaining_modal" data-round="'+r+'" value="'+(rd.remaining||0)+'" '+(rd.conducted?'':'disabled')+'></td>';
+                h += '</tr>';
             }
-            html += '</tbody></table>';
-            html += '<div class="flex-row mt-12" style="justify-content:flex-end;gap:8px;">';
-            html += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="document.getElementById(\'tfcEditModal\').remove()">取消</button>';
-            html += '<button class="btn btn-primary" onclick="saveThreeFourCheck(\''+pid+'\',\''+phid+'\')">💾 保存</button>';
-            html += '</div></div></div>';
-            document.getElementById('mainContent').insertAdjacentHTML('beforeend', html);
+            h += '</tbody></table>';
+            h += '<div class="flex-row mt-10" style="justify-content:flex-end;gap:8px;">';
+            h += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="document.getElementById(&quot;tfcEditModal&quot;).remove()">取消</button>';
+            h += '<button class="btn btn-primary" onclick="saveThreeFourCheck(&apos;'+pid+'&apos;,&apos;'+phid+'&apos;)">💾 保存</button>';
+            h += '</div></div></div>';
+            document.getElementById('mainContent').insertAdjacentHTML('beforeend', h);
         }
 
         function toggleCRModalStatus(cb) {
@@ -2613,7 +3042,7 @@
                 const avg = vals.reduce((a, b) => a + b, 0) / 5;
                 html +=
                     `<div style="margin-bottom:8px;"><strong>总体进度：</strong><span style="font-size:1.2em;color:#e74c3c;font-weight:700;">${avg.toFixed(1)}%</span><div class="progress-bar-wrap" style="height:18px;margin-top:2px;max-width:400px;"><div class="progress-bar-fill" style="width:${Math.min(100,avg)}%;background:linear-gradient(90deg,#e74c3c,#c0392b);"></div></div></div>`;
-                html += '<div class="chart-wrap"><div class="chart-half"><div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">';
+                html += '<div class="chart-wrap"><div class="chart-half"><div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
                 ['indoor', 'public', 'facade', 'outdoor', 'basement'].forEach((k, i) => {
                     const labels = ['室内进度', '公区进度', '外立面进度', '室外进度', '地下室进度'];
                     html +=
@@ -2621,7 +3050,7 @@
                 });
                 html += '</div></div><div class="chart-half"><canvas id="progressChart"></canvas></div></div>';
                 // 最慢楼栋进度：输入框在左，柱状图在右
-                html += '<div class="chart-wrap mt-8"><div class="chart-half"><div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">';
+                html += '<div class="chart-wrap mt-8"><div class="chart-half"><div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
                 html += '<div class="form-group"><label>最慢楼栋号</label><input id="slowBuilding" value="' +
                     (fb.progress.slowestBuilding || '') + '" placeholder="如12#（31F）"></div>';
                 SLOWEST_BUILDING_TYPES.forEach(t => {
@@ -3905,7 +4334,14 @@
             // ===== 右侧内容区 =====
             html += '<div class="sidebar-content">';
             html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><h3 style="margin:0;">📅 年度竣备、交付项目进度一览表</h3>';
-            html += '<span class="text-sm"><span style="background:#d6eaf8;padding:2px 6px;border-radius:3px;">天蓝底<b>竣备</b>=竣备月</span> <span style="background:#fff9c4;padding:2px 6px;border-radius:3px;">黄底<b>交付</b>=交付月</span> <span style="background:linear-gradient(to bottom, #d6eaf8 50%, #fff9c4 50%);padding:2px 6px;border-radius:3px;">半蓝半黄<b>竣备/交付</b>=同月</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#27ae60;border-radius:50%;vertical-align:middle;"></span> <b>绿点</b>=承接查验启动</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#e74c3c;border-radius:50%;vertical-align:middle;"></span> <b>红点</b>=工地开放日</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#8e44ad;border-radius:50%;vertical-align:middle;"></span> <b>紫点</b>=联合交付评估</span></span></div>';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<label class="ios-switch" style="vertical-align:middle;" title="显示/隐藏总结"><input type="checkbox" id="annualSummaryToggle" '+(localStorage.getItem('showAnnualSummary')!=='0'?'checked':'')+' onchange="var el=document.getElementById(\'annualSummaryWrap\');var c=this.checked;el.style.display=c?\'block\':\'none\';localStorage.setItem(\'showAnnualSummary\',c?\'1\':\'0\');"><span class="slider"></span></label>';
+            html += '<select id="annualYear" onchange="refreshAnnualTab()" style="padding:4px 8px;border-radius:4px;border:1px solid #ccc;font-size:0.85em;">';
+            availableYears.forEach(y => { html += '<option value="'+y+'"'+(y==selYear?' selected':'')+'>'+y+'年</option>'; });
+            html += '</select>';
+            html += '<button class="btn btn-sm btn-outline no-print" style="border-color:#999;color:#555;" onclick="printAnnualTable()">🖨️ 打印</button>';
+            html += '</div>';
+            html += '<div class="text-sm" style="margin-top:4px;"><span style="background:#d6eaf8;padding:2px 6px;border-radius:3px;">天蓝底<b>竣备</b>=竣备月</span> <span style="background:#fff9c4;padding:2px 6px;border-radius:3px;">黄底<b>交付</b>=交付月</span> <span style="background:linear-gradient(to bottom, #d6eaf8 50%, #fff9c4 50%);padding:2px 6px;border-radius:3px;">半蓝半黄<b>竣备/交付</b>=同月</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#27ae60;border-radius:50%;vertical-align:middle;"></span> <b>绿点</b>=承接查验启动</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#e74c3c;border-radius:50%;vertical-align:middle;"></span> <b>红点</b>=工地开放日</span> <span style="padding:0 4px;"><span style="display:inline-block;width:7px;height:7px;background:#8e44ad;border-radius:50%;vertical-align:middle;"></span> <b>紫点</b>=联合交付评估</span></div></div>';
             // 标题显示当前筛选范围
             if (window._annualSelectedCompany) {
                 html += `<p class="text-sm" style="color:var(--accent);">📍 筛选公司：<strong>${window._annualSelectedCompany}</strong></p>`;
@@ -3913,12 +4349,6 @@
                 const sel = _projects.find(p => p.id === window._annualSelectedPid);
                 if (sel) html += `<p class="text-sm" style="color:var(--accent);">📍 筛选项目：<strong>${sel.company} · ${sel.name}</strong></p>`;
             }
-            html += '<div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;" class="mb-8"><div class="form-group"><label>选择年度</label><select id="annualYear" onchange="refreshAnnualTab()">';
-            availableYears.forEach(y => {
-                html += `<option value="${y}" ${y == selYear ? 'selected' : ''}>${y}年</option>`;
-            });
-            html += '</select></div>';
-            html += '<button class="btn btn-sm btn-outline no-print" style="border-color:#999;color:#555;" onclick="printAnnualTable()">🖨️ 打印</button></div>';
 
             let filterProjects = _projects;
             if (window._annualSelectedCompany) {
@@ -3980,6 +4410,7 @@
                 });
                 companyLines.push('<b>'+c+'公司</b>：需关注 '+phaseDescs.join('；'));
             });
+            html += '<div id="annualSummaryWrap" style="display:'+(localStorage.getItem('showAnnualSummary')!=='0'?'block':'none')+';">';
             if (companyLines.length > 0) {
                 html += '<div style="margin-bottom:8px;padding:8px 12px;background:#fffbf0;border-left:3px solid #f39c12;border-radius:4px;font-size:0.8em;color:#555;">';
                 html += '<b style="color:#e67e22;">⚡ '+nowMonthName+'管理动作提醒：</b><br>';
@@ -3990,6 +4421,7 @@
                 html += '✅ '+nowMonthName+'暂无竣备/交付/承查/开放日/联合评估计划。';
                 html += '</div>';
             }
+            html += '</div>';
             const relevant = [];
             filterProjects.forEach(p => {
                 (p.phases || []).forEach(ph => {
@@ -4027,7 +4459,7 @@
                 monthHeaders += `<th style="width:44px;${hasEvents?'cursor:help;color:#1a3c5e;':''}"${hasEvents?' data-tip="'+tip+'" onmouseenter="showQuickTooltip(event,this.dataset.tip)" onmouseleave="hideQuickTooltip()"':''}>${m}月</th>`;
             }
             html +=
-                '<div class="annual-table-wrap"><table><thead><tr><th style="width:48px;">所属公司</th><th style="width:24px;">序号</th><th style="min-width:78px;">项目</th><th style="width:48px;">标段</th><th style="width:40px;">类型</th><th style="width:50px;">交付标准</th><th style="width:34px;">户数</th><th style="width:68px;">竣备时间</th><th style="width:68px;">交付时间</th>' + monthHeaders + '</tr></thead><tbody>';
+                '<div class="annual-table-wrap"><table><thead><tr><th style="width:48px;">所属公司</th><th style="width:24px;">序号</th><th style="min-width:86px;">项目</th><th style="width:48px;">标段</th><th style="width:50px;">交付标准</th><th style="width:34px;">户数</th><th style="width:68px;">竣备时间</th><th style="width:48px;">时间差</th><th style="width:68px;">交付时间</th>' + monthHeaders + '</tr></thead><tbody>';
             const typeColorMap = { '操盘': '#d4edda', '合作': '#fde2e7', '代建': '#fef3cd' };
             const companyAccent = { '北方':'#e74c3c','雄安':'#f39c12','华中':'#2ecc71','华东':'#3498db','贵州':'#9b59b6','西南':'#1abc9c','南沙':'#e67e22','创新':'#34495e' };
             // 按公司分组，再按项目合并，全局累计序号
@@ -4058,17 +4490,17 @@
                         if (k === ci) {
                             html += `<td rowspan="${projRowspan}" style="text-align:center;vertical-align:middle;color:#999;font-size:0.82em;">${globalNum}</td>`;
                         }
-                        // 项目名 — 同项目的首行合并，后续行只显示标段名
+                        // 项目名 — 同项目的首行合并，类型显示在名称下
                         if (k === ci) {
-                            html += `<td rowspan="${projRowspan}" style="font-size:0.8em;vertical-align:middle;word-break:keep-all;cursor:pointer;color:#2980b9;" onclick="editProject('${r.project.id}')" title="点击编辑项目">${r.project.name}</td>`;
+                            html += `<td rowspan="${projRowspan}" style="font-size:0.78em;vertical-align:middle;word-break:keep-all;line-height:1.3;cursor:pointer;color:#2980b9;" onclick="editProject('${r.project.id}')" title="点击编辑项目"><b>${r.project.name}</b><br><span class="tag" style="background:${typeTagColor};font-size:0.75em;margin-top:1px;">${r.project.type}</span></td>`;
                         }
-                        html += `<td style="font-size:0.78em;">${r.phase.name}</td>`;
-                        const typeTooltip = r.project.type === '代建' ? ('业主方: '+(r.project.owner||'-')+' | 中标时间: '+(r.project.bidWinTime||'-')+' | 代建条线: '+(r.project.agentLines||'-')+' | 品牌输出: '+(r.project.brandOutput||'-')) : (r.project.type === '合作' ? ('合作方: '+(r.project.partner||'-')+' | 股比: '+(r.project.shareRatio||'-')+' | 我司条线: '+(r.project.ourLines||'-')) : '');
-                        html += `<td><span class="tag" style="background:${typeTagColor};${typeTooltip?'cursor:help;':''}" ${typeTooltip?'data-tip="'+typeTooltip+'" onmouseenter="showQuickTooltip(event,this.dataset.tip)" onmouseleave="hideQuickTooltip()"':''}>${r.project.type}</span></td>`;
+                        var phaseDisplay = r.phase.name||'';
+                        if (phaseDisplay.indexOf(r.project.name) === 0) phaseDisplay = phaseDisplay.substring(r.project.name.length);
+                        html += `<td style="font-size:0.78em;">${phaseDisplay}</td>`;
                         const ds = r.phase.deliveryStandard||'';
                         const dsColor = ds.includes('精装')&&ds.includes('毛坯')?'linear-gradient(135deg, #d4edda 50%, #e9ecef 50%)':ds.includes('精装')?'#d4edda':ds.includes('毛坯')?'#e9ecef':'transparent';
                         const dsTextColor = ds.includes('精装')&&ds.includes('毛坯')?'#444':ds.includes('精装')?'#155724':ds.includes('毛坯')?'#555':'inherit';
-                        html += `<td style="white-space:nowrap;"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.82em;background:${dsColor};color:${dsTextColor};font-weight:500;">${ds}</span></td><td style="white-space:nowrap;">${r.phase.deliveryUnits||''}</td><td style="font-size:0.82em;white-space:nowrap;">${formatDate(r.phase.completionTime)}</td><td style="font-size:0.82em;white-space:nowrap;">${formatDate(r.phase.deliveryTime)}</td>`;
+                        html += `<td style="white-space:nowrap;"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.82em;background:${dsColor};color:${dsTextColor};font-weight:500;">${ds}</span></td><td style="white-space:nowrap;">${r.phase.deliveryUnits||''}</td><td style="font-size:0.82em;white-space:nowrap;">${formatDate(r.phase.completionTime)}</td><td style="font-size:0.78em;text-align:center;white-space:nowrap;">${r.phase.completionTime&&r.phase.deliveryTime?(()=>{var d=daysBetween(r.phase.completionTime,r.phase.deliveryTime);var c=d<45?'color:#e74c3c;font-weight:bold;':d>180?'color:#27ae60;font-weight:bold;':'';return '<span style=\"'+c+'\">'+d+'d</span>';})():''}</td><td style="font-size:0.82em;white-space:nowrap;">${formatDate(r.phase.deliveryTime)}</td>`;
                         for (let m = 1; m <= 12; m++) {
                             const monthStr = year + '-' + String(m).padStart(2, '0');
                             const compMonth = r.phase.completionTime ? r.phase.completionTime.substring(0, 7) : null;
@@ -4498,6 +4930,39 @@
         }
 
         // ==================== 导入导出 ====================
+        function showExportModal() {
+            var h = '<div class="modal-overlay" id="exportModal" style="display:flex;"><div class="modal" style="max-width:450px;">';
+            h += '<h3>导出数据</h3><p class="text-sm mb-8">选择要导出的公司：</p>';
+            h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">';
+            h += '<label style="cursor:pointer;margin-right:12px;"><input type="checkbox" onchange="var c=this.checked;var es=document.querySelectorAll(\".export_company[value]\");for(var i=0;i<es.length;i++)es[i].checked=c;"> 全选</label>';
+            COMPANIES.forEach(function(c) {
+                h += '<label style="cursor:pointer;margin-right:12px;"><input type="checkbox" class="export_company" value="'+c+'" checked> '+c+'</label>';
+            });
+            h += '</div><div class="flex-row mt-8" style="justify-content:flex-end;gap:8px;">';
+            h += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="document.getElementById(&quot;exportModal&quot;).remove()">取消</button>';
+            h += '<button class="btn btn-primary" onclick="executeExport()">导出</button>';
+            h += '</div></div></div>';
+            document.body.insertAdjacentHTML("beforeend", h);
+        }
+        function executeExport() {
+            var checks = document.querySelectorAll(".export_company[value]:checked");
+            var selected = [].map.call(checks, function(cb) { return cb.value; });
+            var data = loadData();
+            if (selected.length > 0 && selected.length < COMPANIES.length) {
+                data = data.filter(function(p) { return selected.includes(p.company); });
+            }
+            var now = getNowShort().replace(/[:\s]/g, "").substring(0, 15);
+            var label = selected.length === 0 || selected.length === COMPANIES.length ? "全部" : selected.join("-");
+            var filename = "CRCCRE_" + USER_NAME + "_" + label + "_" + now + ".json";
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+            showToast("已导出: " + filename);
+            document.getElementById("exportModal").remove();
+        }
+
         function exportAll() {
             const data = loadData();
             const now = getNowShort().replace(/[:\s]/g, '').substring(0, 15);
@@ -4830,61 +5295,28 @@
 
         // ==================== 一键清理 ====================
         function showCleanModal() {
-            const container = document.getElementById('cleanCompanyChecks');
-            container.innerHTML = '<div style="margin-bottom:8px;display:flex;gap:6px;"><button class="btn btn-sm" style="font-size:0.75em;padding:2px 10px;background:#e8f0fe;border:1px solid #b0c4de;border-radius:12px;" onclick="var all=document.querySelectorAll(\'#cleanCompanyChecks input[type=checkbox]\');all.forEach(function(cb){cb.checked=true;cb.dispatchEvent(new Event(\'change\'))})">全选公司</button><button class="btn btn-sm" style="font-size:0.75em;padding:2px 10px;background:#fef0f0;border:1px solid #e0c0c0;border-radius:12px;" onclick="var all=document.querySelectorAll(\'#cleanCompanyChecks input[type=checkbox]\');all.forEach(function(cb){cb.checked=false;cb.dispatchEvent(new Event(\'change\'))})">取消全选</button></div>' +
-                COMPANIES.map(c => {
-                const cProjs = _projects.filter(p => p.company === c);
-                return '<div style="margin-bottom:6px;">' +
-                    '<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:#fff;border-radius:16px;border:1px solid #e0e0e0;font-size:0.85em;font-weight:600;cursor:pointer;width:100%;"><input type="checkbox" class="clean-company-cb" value="' + c + '" onchange="toggleCleanCompany(this)" style="accent-color:#e74c3c;"> ' + c + ' <span style="font-weight:400;font-size:0.75em;color:#999;">(' + cProjs.length + '个项目)</span></label>' +
-                    '<div class="clean-projects" data-company="' + c + '" style="display:none;padding:4px 0 4px 20px;">' +
-                    cProjs.map(p => '<label style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:0.78em;cursor:pointer;"><input type="checkbox" class="clean-proj-' + c + '" value="' + p.id + '" style="accent-color:#e74c3c;"> ' + p.name + '</label>').join('') +
-                    '</div></div>';
-            }).join('');
-            var existing = document.getElementById('cleanTypeRadios'); if (existing) existing.remove();
-                const typeHTML = '<div id="cleanTypeRadios" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">' +
-                    ['projects','monthly','inspection','files','all'].map((v,i) => {
-                        const labels = {projects:'项目数据',monthly:'月度信息反馈',inspection:'质检小组信息',files:'清除上传附件',all:'全部数据'};
-                        const descs = {projects:'删除选中的项目或整个公司',monthly:'清空所有标段的月度数据',inspection:'清空质检小组人员及台账',files:'清除所有上传的附件文件',all:'以上全部清理'};
-                        return '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border-radius:10px;border:1px solid #e0e0e0;cursor:pointer;font-size:0.82em;"><input type="radio" name="cleanType" value="'+v+'"'+(i===0?' checked':'')+' style="accent-color:#e74c3c;"><div><div>'+labels[v]+'</div><div style="font-size:0.78em;color:#999;">'+descs[v]+'</div></div></label>';
-                    }).join('') + '</div>';
-                container.insertAdjacentHTML('afterend', typeHTML);
-            document.getElementById('cleanModal').style.display = 'flex';
+            var h = '<div style="margin-bottom:8px;display:flex;gap:6px;"><button class="btn btn-sm" style="font-size:0.75em;padding:2px 10px;background:#e8f0fe;border:1px solid #b0c4de;border-radius:12px;" onclick="var all=document.querySelectorAll(&quot;#cleanChecks input[type=checkbox]&quot;);for(var i=0;i<all.length;i++)all[i].checked=true">全选</button><button class="btn btn-sm" style="font-size:0.75em;padding:2px 10px;background:#fef0f0;border:1px solid #e0c0c0;border-radius:12px;" onclick="var all=document.querySelectorAll(&quot;#cleanChecks input[type=checkbox]&quot;);for(var i=0;i<all.length;i++)all[i].checked=false">取消全选</button></div>';
+            h += '<div id="cleanChecks" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;">';
+            COMPANIES.forEach(function(c) {
+                var cProjs = _projects.filter(function(p) { return p.company === c; });
+                if (cProjs.length === 0) return;
+                h += '<label style="cursor:pointer;padding:4px 10px;background:#fff;border-radius:16px;border:1px solid #e0e0e0;font-size:0.85em;margin-right:4px;"><input type="checkbox" value="'+c+'" style="accent-color:#e74c3c;"> '+c+' ('+cProjs.length+')</label>';
+            });
+            h += '</div>';
+            document.getElementById("cleanCompanyChecks").innerHTML = h;
+            document.getElementById("cleanModal").style.display = "flex";
         }
 
         function executeClean() {
-            const checkedCompanies = [];
-            document.querySelectorAll('#cleanCompanyChecks > div > label > input[type=checkbox]:checked').forEach(el => checkedCompanies.push(el.value));
-            const checkedProjects = [];
-            checkedCompanies.forEach(c => { document.querySelectorAll('.clean-proj-' + c + ':checked').forEach(el => checkedProjects.push(el.value)); });
-            const hasSub = checkedProjects.length > 0;
-            if (checkedCompanies.length === 0) { showToast('请至少选择一个公司'); return; }
-            const cleanType = document.querySelector('input[name="cleanType"]:checked')?.value || 'projects';
-            const typeNames = { projects: '项目数据', monthly: '月度信息反馈', inspection: '质检小组信息', all: '全部数据' };
-            if (confirm(`确定清理以下公司的${typeNames[cleanType]}吗？\n${checkedCompanies.join('、')}\n此操作不可恢复！`)) {
-                if (cleanType === 'projects' || cleanType === 'all') {
-                    if (hasSub) _projects = _projects.filter(p => !checkedProjects.includes(p.id));
-                    else _projects = _projects.filter(p => !checkedCompanies.includes(p.company));
-                }
-                if (cleanType === 'monthly' || cleanType === 'all') {
-                    checkedCompanies.forEach(c => { _projects.filter(p => p.company === c).forEach(p => { (p.phases||[]).forEach(ph => { ph.monthlyFeedbacks = {}; }); }); });
-                }
-                if (cleanType === 'inspection' || cleanType === 'all') {
-                    const teams = loadTeamData();
-                    checkedCompanies.forEach(c => { delete teams[c]; });
-                    saveTeamData(teams);
-                    // 同时清理检查类别数据
-                    checkedCompanies.forEach(c => { _projects.filter(p => p.company === c).forEach(p => { (p.phases||[]).forEach(ph => { (ph.monthlyFeedbacks && Object.values(ph.monthlyFeedbacks).forEach(fb => { delete fb.inspType; delete fb.inspSubType; delete fb.lastUpdate; })); }); }); });
-                }
-                if (cleanType === 'files' || cleanType === 'all') {
-                    const delAllFiles = async function() { const db = await FILE_DB._open(); const tx = db.transaction('files','readwrite'); tx.objectStore('files').clear(); tx.oncomplete = function(){}; };
-                    delAllFiles();
-                    _projects.forEach(p => { (p.phases||[]).forEach(ph => { if (ph.monthlyFeedbacks) { Object.values(ph.monthlyFeedbacks).forEach(fb => { if (fb.twoOne) { if (fb.twoOne.files1) fb.twoOne.files1 = []; if (fb.twoOne.leakInspection3?.files) fb.twoOne.leakInspection3.files = []; if (fb.twoOne.leakInspection6?.files) fb.twoOne.leakInspection6.files = []; } if (fb.threeFourCheck) { if (fb.threeFourCheck.inspectionRounds) fb.threeFourCheck.inspectionRounds.forEach(r => { if (r.files) r.files = []; }); if (fb.threeFourCheck.inspectionRoundsData) fb.threeFourCheck.inspectionRoundsData.forEach(r => { if (r.files) r.files = []; }); if (fb.threeFourCheck.jointEval?.files) fb.threeFourCheck.jointEval.files = []; if (fb.threeFourCheck.openDay?.files) fb.threeFourCheck.openDay.files = []; } }); } }); });
-                }
+            var checks = document.querySelectorAll("#cleanChecks input[type=checkbox]:checked");
+            var selected = [].map.call(checks, function(cb) { return cb.value; });
+            if (selected.length === 0) { showToast("请至少选择一个公司"); return; }
+            if (confirm("确定删除以下公司所有项目数据吗？\n" + selected.join("、") + "\n此操作不可恢复！")) {
+                _projects = _projects.filter(function(p) { return !selected.includes(p.company); });
                 saveData(_projects);
-                document.getElementById('cleanModal').style.display = 'none';
-                renderCurrentTab();
-                showToast('🧹 已清理：' + checkedCompanies.join('、'));
+                showToast("已清除 " + selected.length + " 个公司数据");
             }
+            document.getElementById("cleanModal").style.display = "none";
         }
 
         function toggleCleanCompany(cb) {
@@ -4905,7 +5337,7 @@
             document.getElementById('imgPreviewModal').addEventListener('click', function(e) {
                 if (e.target === this) this.style.display = 'none';
             });
-            renderCurrentTab();
+            try { renderCurrentTab(); } catch(e) { document.getElementById('mainContent').innerHTML = '<div class="card" style="padding:20px;color:red;"><h3>渲染错误</h3><pre>'+e.message+'</pre></div>'; console.error(e); }
         }
 
         document.addEventListener('DOMContentLoaded', init);
@@ -4982,6 +5414,22 @@
                     showToast("格式异常 类型:" + (typeof d) + " 预览:" + text.substring(0,200));
                 }
             } catch(e) { showToast("错误:" + e.message); console.error(e); }
+        }
+        function showSubmitPwdModal() {
+            var h = '<div class="modal-overlay" id="submitPwdModal" style="display:flex;"><div class="modal" style="max-width:380px;">';
+            h += '<h3>🔐 验证口令</h3><p class="text-sm mb-8">请输入提交口令：</p>';
+            h += '<div class="form-group"><input type="password" id="submitPwd" placeholder="请输入口令" style="width:100%;" onkeydown="if(event.key===\'Enter\')checkSubmitPwd()"></div>';
+            h += '<div class="flex-row mt-12" style="justify-content:flex-end;gap:8px;">';
+            h += '<button class="btn btn-outline" style="border-color:#999;color:#555;" onclick="document.getElementById(&quot;submitPwdModal&quot;).remove()">取消</button>';
+            h += '<button class="btn btn-success" onclick="checkSubmitPwd()">确认提交</button>';
+            h += '</div></div></div>';
+            document.body.insertAdjacentHTML("beforeend", h);
+        }
+        function checkSubmitPwd() {
+            var pwd = document.getElementById("submitPwd").value.trim();
+            if (pwd !== "crccre") { showToast("❌ 口令错误，无法提交"); return; }
+            document.getElementById("submitPwdModal").remove();
+            executeSubmit();
         }
         async function executeSubmit() {
             var total = _projects.length, success = 0, fail = 0;
